@@ -1,0 +1,33 @@
+name: photosync_common
+version: 1.0.0
+publish_to: none
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # 网络
+  dio: ^5.4.0
+  udp: ^5.0.3
+  http: ^1.1.0
+  # 工具
+  json_annotation: ^4.8.1
+  crypto: ^3.0.3
+  intl: ^0.19.0
+  freezed_annotation: ^2.4.1
+  uuid: ^4.3.3
+  connectivity_plus: ^5.0.2
+  shared_preferences: ^2.2.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+  build_runner: ^2.4.8
+  json_serializable: ^6.7.1
+  freezed: ^2.4.6
+  mockito: ^5.4.4
+
+flutter:

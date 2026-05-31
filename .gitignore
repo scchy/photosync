@@ -1,0 +1,64 @@
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Flutter/Dart
+.dart_tool/
+.pub-cache/
+.pub/
+/build/
+**/doc/api/
+.flutter-plugins
+.flutter-plugins-dependencies
+app.*.symbols
+app.*.map.json
+
+# Android
+/android/app/debug
+/android/app/profile
+/android/app/release
+*.keystore
+*.jks
+key.properties
+
+# iOS/macOS
+/ios/Flutter/.last_build_id
+/macos/Flutter/ephemeral
+
+# Linux
+/linux/flutter/ephemeral
+
+# Node / Python
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+
+# Logs
+*.log
+
+# Local env
+.env
+.env.local
+
+# Large binaries / outputs
+*.apk
+*.aab
+*.ipa
+*.dmg
+*.exe
+*.deb
+*.rpm
+
+# Coverage
+coverage/

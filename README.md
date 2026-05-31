@@ -1,0 +1,146 @@
+# PhotoSync
+
+在同一 WiFi 下同步手机照片到桌面端大容量存储的 Flutter 应用。
+
+## 功能
+
+- **WiFi 设备发现**：手机自动发现同一局域网下的桌面端（支持手动添加 IP）
+- **照片同步**：选择照片手动上传，或开启自动同步
+- **增量同步**：基于 SHA-256 哈希，只传输新文件
+- **自动同步**：连接 WiFi 后自动检测并同步新照片（默认开启，仅同步当天）
+- **桌面端浏览**：按用户/年/月分组浏览，支持展开/折叠
+- **照片管理**：桌面端支持删除照片，自动清理空目录
+- **同步日志**：实时记录上传/删除/设备连接事件，支持筛选
+- **已保存设备**：手机端支持编辑/删除已保存的桌面端设备
+- **重复检测**：上传前检查服务器哈希，避免重复传输
+
+## 技术栈
+
+- **Flutter** — 跨平台（Android + Linux 桌面）
+- **HTTP 文件传输** — 基于 shelf + multipart
+- **SQLite** — 桌面端照片索引 + 同步日志
+- **SharedPreferences** — 设置持久化 + 设备存储
+- **Material Design 3** — 清新蓝绿主题
+
+## 项目结构
+
+```
+photosync/
+├── common/              # 共享代码（模型 + 服务）
+│   ├── lib/models/      # Device, Photo, SyncTask, User
+│   └── lib/services/    # Auth, Discovery, Transfer, Settings, AutoSync, DeviceStorage
+├── mobile/              # 手机端 Flutter 应用（Android）
+│   ├── lib/screens/     # Gallery, Devices, Settings, Auth
+│   └── lib/services/    # SyncService
+├── desktop/             # 桌面端 Linux 应用
+│   ├── lib/screens/     # PhotoBrowser, DeviceManager, SyncLog, Settings, Auth
+│   └── lib/services/    # DesktopServer, StorageManager
+├── integration_test/    # 集成测试
+├── docs/                # 设计文档
+└── build.sh             # 构建脚本
+```
+
+## 快速开始
+
+### 环境要求
+
+- Flutter SDK 3.16+
+- Android SDK（手机端）
+- Linux 开发环境（桌面端）
+- Java 17
+
+### 构建
+
+```bash
+# 一键构建（手机端 + 桌面端 + 测试）
+./build.sh
+
+# 手动构建手机端 APK
+cd mobile
+flutter build apk --release
+
+# 手动构建桌面端 Linux
+cd desktop
+flutter build linux --release
+```
+
+### 运行
+
+**手机端**：
+```bash
+cd mobile
+flutter run
+```
+
+**桌面端**：
+```bash
+cd desktop
+flutter run -d linux
+```
+
+## 默认设置
+
+| 设置项 | 默认值 | 说明 |
+|--------|--------|------|
+| 自动同步 | ✅ 开启 | 连接WiFi时自动同步 |
+| 仅WiFi同步 | ✅ 开启 | 仅在WiFi下同步 |
+| 仅同步新照片 | ✅ 开启 | 跳过已同步的照片 |
+| 仅同步当天 | ✅ 开启 | 只同步今天拍摄的照片 |
+| 同步质量 | 原图 | 保持原始画质 |
+
+## API 端点
+
+```
+POST   /api/upload           # 上传照片（multipart）
+GET    /api/photos           # 获取照片列表
+GET    /api/photos/grouped   # 按用户/年/月分组
+DELETE /api/photos/<id>      # 删除照片
+GET    /api/stats            # 同步统计
+GET    /api/devices          # 已连接设备列表
+POST   /api/device/connect   # 设备连接通知
+GET    /api/health           # 健康检查
+POST   /api/sync/check       # 哈希重复检查
+```
+
+## 开发
+
+### 运行测试
+
+```bash
+# 公共模块测试
+cd common && flutter test
+
+# 手机端测试
+cd mobile && flutter test
+
+# 桌面端测试
+cd desktop && flutter test
+
+# 集成测试
+flutter test integration_test/app_test.dart
+```
+
+### TDD 流程
+
+项目按 TDD 方式开发，详见 `docs/TDD_PLAN.md`：
+1. 写测试（Red）
+2. 写最小实现（Green）
+3. 重构优化（Refactor）
+
+## CI / CD
+
+GitHub Actions 自动执行：
+- **Lint**: `flutter analyze`（common + mobile + desktop）
+- **Test**: `flutter test`（全模块）
+- **Build**: APK + Linux 桌面端
+- **Release**: 自动版本迭代 + Release 附件
+
+## 文档
+
+- `docs/design.md` — 架构设计
+- `docs/TDD_PLAN.md` — TDD 实施计划
+- `docs/TDD_PROGRESS.md` — 进度跟踪
+
+## 贡献
+
+按 TDD 流程贡献，详见 `docs/TDD_PLAN.md`。
