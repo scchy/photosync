@@ -13,6 +13,8 @@ import 'package:photosync_common/services/settings_service.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:qr_flutter/qr_flutter.dart';
+
 import '../theme/app_theme.dart';
 import '../services/sync_service.dart';
 
@@ -137,7 +139,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
           // 获取更多信息（用新的 client）
           final statusClient = HttpClient();
           statusClient.connectionTimeout = const Duration(seconds: 5);
-          final statusReq = await statusClient.get(ip, port, '/api/sync/status');
+          final statusReq =
+              await statusClient.get(ip, port, '/api/sync/status');
           final statusResp = await statusReq.close();
           final statusBody = await statusResp.transform(utf8.decoder).join();
           statusClient.close();
@@ -170,7 +173,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
         _showMessage('连接失败: HTTP ${response.statusCode}');
       }
     } on SocketException catch (e) {
-      _showMessage('无法连接到 $ip:$port，请检查:\n1. 桌面端是否已启动\n2. 手机和电脑是否在同一WiFi\n3. IP 地址是否正确');
+      _showMessage(
+          '无法连接到 $ip:$port，请检查:\n1. 桌面端是否已启动\n2. 手机和电脑是否在同一WiFi\n3. IP 地址是否正确');
     } catch (e) {
       _showMessage('连接失败: $e');
     } finally {
@@ -206,7 +210,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
 
       final httpClient = HttpClient();
       httpClient.connectionTimeout = const Duration(seconds: 5);
-      final request = await httpClient.post(desktopDevice.ip, desktopDevice.port, '/api/device/connect');
+      final request = await httpClient.post(
+          desktopDevice.ip, desktopDevice.port, '/api/device/connect');
       request.headers.contentType = ContentType.json;
       request.write(jsonEncode(myDevice.toJson()));
       final response = await request.close();
@@ -231,8 +236,39 @@ class _DevicesScreenState extends State<DevicesScreen> {
             _buildInfoRow('IP 地址', device.ip),
             _buildInfoRow('端口', '${device.port}'),
             if (device.storageAvailable != null)
-              _buildInfoRow('可用空间', '${(device.storageAvailable! / 1024 / 1024 / 1024).toStringAsFixed(1)} GB'),
+              _buildInfoRow('可用空间',
+                  '${(device.storageAvailable! / 1024 / 1024 / 1024).toStringAsFixed(1)} GB'),
           ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('关闭'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showShareQrCode(Device device) {
+    final qrData = jsonEncode({
+      'type': 'photosync_device',
+      'name': device.name,
+      'ip': device.ip,
+      'port': device.port,
+    });
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('分享二维码'),
+        content: SizedBox(
+          width: 250,
+          height: 250,
+          child: QrImageView(
+            data: qrData,
+            version: QrVersions.auto,
+            size: 250,
+          ),
         ),
         actions: [
           TextButton(
@@ -303,7 +339,6 @@ class _DevicesScreenState extends State<DevicesScreen> {
           SliverToBoxAdapter(
             child: _buildHeader(),
           ),
-          
           if (_isScanning && _devices.isEmpty)
             SliverFillRemaining(
               child: _buildScanningState(),
@@ -344,8 +379,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
               Text(
                 '可同步设备',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
               TextButton.icon(
                 onPressed: _addDeviceByIp,
@@ -358,8 +393,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
           Text(
             _isScanning ? '正在扫描局域网...' : '发现 ${_devices.length} 个设备',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppTheme.textSecondaryColor,
-            ),
+                  color: AppTheme.textSecondaryColor,
+                ),
           ),
         ],
       ),
@@ -389,8 +424,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
           Text(
             '请确保设备在同一WiFi网络下',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppTheme.textSecondaryColor,
-            ),
+                  color: AppTheme.textSecondaryColor,
+                ),
           ),
         ],
       ),
@@ -424,8 +459,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
             '自动发现可能因路由器限制而失败\n请尝试手动添加设备',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppTheme.textSecondaryColor,
-            ),
+                  color: AppTheme.textSecondaryColor,
+                ),
           ),
           const SizedBox(height: AppTheme.spacingLG),
           ElevatedButton.icon(
@@ -486,23 +521,25 @@ class _DevicesScreenState extends State<DevicesScreen> {
                     children: [
                       Text(
                         device.name,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
                       ),
                       const SizedBox(height: AppTheme.spacingXS),
                       Text(
                         '${device.ip}:${device.port}',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.textSecondaryColor,
-                        ),
+                              color: AppTheme.textSecondaryColor,
+                            ),
                       ),
                       if (device.storageAvailable != null)
                         Text(
                           '可用空间: ${_formatBytes(device.storageAvailable!)}',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppTheme.successColor,
-                          ),
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: AppTheme.successColor,
+                                  ),
                         ),
                     ],
                   ),
@@ -531,9 +568,9 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       Text(
                         '在线',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.successColor,
-                          fontWeight: FontWeight.w600,
-                        ),
+                              color: AppTheme.successColor,
+                              fontWeight: FontWeight.w600,
+                            ),
                       ),
                     ],
                   ),
@@ -594,7 +631,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
                 Navigator.pop(context);
                 final settings = SettingsService();
                 await settings.load();
-                final syncService = SyncService(syncTodayOnly: settings.syncTodayOnly);
+                final syncService =
+                    SyncService(syncTodayOnly: settings.syncTodayOnly);
                 final photos = await syncService.getPhotosToSync();
 
                 if (photos.isEmpty) {
@@ -620,7 +658,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
                 }
 
                 final transferService = TransferService(device);
-                final missingHashes = await transferService.checkExistingFiles(hashes);
+                final missingHashes =
+                    await transferService.checkExistingFiles(hashes);
                 transferService.dispose();
 
                 final duplicateCount = hashes.length - missingHashes.length;
@@ -675,6 +714,15 @@ class _DevicesScreenState extends State<DevicesScreen> {
               onTap: () {
                 Navigator.pop(context);
                 _showDeviceInfo(device);
+              },
+            ),
+            _buildOptionTile(
+              icon: Icons.qr_code_rounded,
+              title: '分享二维码',
+              subtitle: '通过二维码分享设备连接信息',
+              onTap: () {
+                Navigator.pop(context);
+                _showShareQrCode(device);
               },
             ),
           ],

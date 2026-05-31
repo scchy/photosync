@@ -35,7 +35,8 @@ void main() {
       expect(find.byType(Switch), findsWidgets);
     });
 
-    testWidgets('should show sync quality selector', (WidgetTester tester) async {
+    testWidgets('should show sync quality selector',
+        (WidgetTester tester) async {
       // Act
       await tester.pumpWidget(
         MaterialApp(

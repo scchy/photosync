@@ -20,7 +20,8 @@ void main() {
       expect(find.byType(GalleryScreen), findsOneWidget);
     });
 
-    testWidgets('should show loading state initially', (WidgetTester tester) async {
+    testWidgets('should show loading state initially',
+        (WidgetTester tester) async {
       // Act
       await tester.pumpWidget(
         MaterialApp(
@@ -33,7 +34,8 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
     });
 
-    testWidgets('should have selection mode button', (WidgetTester tester) async {
+    testWidgets('should have selection mode button',
+        (WidgetTester tester) async {
       // Act
       await tester.pumpWidget(
         MaterialApp(

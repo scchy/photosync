@@ -51,7 +51,7 @@ class DiscoveryService {
 
     // 创建广播发送器
     _sender = await UDP.bind(Endpoint.any(port: const Port(0)));
-    
+
     // 创建广播接收器
     _receiver = await UDP.bind(Endpoint.any(port: const Port(discoveryPort)));
 
@@ -76,7 +76,8 @@ class DiscoveryService {
     });
 
     final messageBytes = Uint8List.fromList(utf8.encode(message));
-    final broadcastEndpoint = Endpoint.broadcast(port: const Port(discoveryPort));
+    final broadcastEndpoint =
+        Endpoint.broadcast(port: const Port(discoveryPort));
 
     // 立即发送一次
     await _sender?.send(messageBytes, broadcastEndpoint);
@@ -98,7 +99,7 @@ class DiscoveryService {
 
       try {
         final data = jsonDecode(utf8.decode(datagram.data));
-        
+
         // 忽略自己的广播
         if (data['id'] == _myDevice?.id) return;
 
@@ -155,7 +156,8 @@ class DiscoveryService {
       (_) {
         final now = DateTime.now();
         final expired = _lastSeen.entries
-            .where((e) => now.difference(e.value).inSeconds > deviceTimeoutSeconds)
+            .where(
+                (e) => now.difference(e.value).inSeconds > deviceTimeoutSeconds)
             .map((e) => e.key)
             .toList();
 
@@ -177,7 +179,7 @@ class DiscoveryService {
         type: InternetAddressType.IPv4,
         includeLinkLocal: false,
       );
-      
+
       for (final interface in interfaces) {
         for (final addr in interface.addresses) {
           if (!addr.isLoopback) {

@@ -44,7 +44,8 @@ void main() {
       await testFile.writeAsBytes(data);
 
       // Act
-      final chunks = await resumableTransfer.splitFile(testFile.path, chunkSize: 256 * 1024);
+      final chunks = await resumableTransfer.splitFile(testFile.path,
+          chunkSize: 256 * 1024);
 
       // Assert: 1MB / 256KB = 4 chunks
       expect(chunks.length, 4);
@@ -60,7 +61,8 @@ void main() {
       await testFile.writeAsString('hello world chunk 1');
 
       // Act
-      final chunks = await resumableTransfer.splitFile(testFile.path, chunkSize: 10);
+      final chunks =
+          await resumableTransfer.splitFile(testFile.path, chunkSize: 10);
 
       // Assert
       expect(chunks[0].hash, isNotNull);
@@ -84,11 +86,12 @@ void main() {
       // Arrange
       final testFile = File(path.join(tempDir.path, 'test.txt'));
       await testFile.writeAsString('hello worl'); // 10 bytes
-      final chunks = await resumableTransfer.splitFile(testFile.path, chunkSize: 5);
+      final chunks =
+          await resumableTransfer.splitFile(testFile.path, chunkSize: 5);
 
       // Act: Simulate uploading first chunk
       await resumableTransfer.markChunkUploaded(testFile.path, chunks[0].index);
-      
+
       // Assert: Progress should be 50% (1 of 2 chunks)
       final progress = await resumableTransfer.getUploadProgress(testFile.path);
       expect(progress, 0.5);
@@ -98,14 +101,16 @@ void main() {
       // Arrange
       final testFile = File(path.join(tempDir.path, 'test.txt'));
       await testFile.writeAsString('hello world test data');
-      final chunks = await resumableTransfer.splitFile(testFile.path, chunkSize: 7);
+      final chunks =
+          await resumableTransfer.splitFile(testFile.path, chunkSize: 7);
 
       // Mark some chunks as uploaded
       await resumableTransfer.markChunkUploaded(testFile.path, 0);
       await resumableTransfer.markChunkUploaded(testFile.path, 2);
 
       // Act
-      final missingChunks = await resumableTransfer.getMissingChunks(testFile.path);
+      final missingChunks =
+          await resumableTransfer.getMissingChunks(testFile.path);
 
       // Assert: Chunk 1 should be missing
       expect(missingChunks.length, 1);
@@ -117,15 +122,17 @@ void main() {
       final testFile = File(path.join(tempDir.path, 'original.txt'));
       final originalData = 'hello world this is a test';
       await testFile.writeAsString(originalData);
-      
-      final chunks = await resumableTransfer.splitFile(testFile.path, chunkSize: 10);
-      
+
+      final chunks =
+          await resumableTransfer.splitFile(testFile.path, chunkSize: 10);
+
       // Create chunk files
       final chunkDir = Directory(path.join(tempDir.path, 'chunks'));
       await chunkDir.create();
-      
+
       for (final chunk in chunks) {
-        final chunkFile = File(path.join(chunkDir.path, 'chunk_${chunk.index}.tmp'));
+        final chunkFile =
+            File(path.join(chunkDir.path, 'chunk_${chunk.index}.tmp'));
         await chunkFile.writeAsBytes(chunk.data);
       }
 
@@ -151,16 +158,18 @@ void main() {
         data[i] = i % 256;
       }
       await testFile.writeAsBytes(data);
-      
-      final chunks = await resumableTransfer.splitFile(testFile.path, chunkSize: 1024 * 1024);
-      
+
+      final chunks = await resumableTransfer.splitFile(testFile.path,
+          chunkSize: 1024 * 1024);
+
       // Simulate: Upload 2 of 5 chunks, then interrupt
       await resumableTransfer.markChunkUploaded(testFile.path, 0);
       await resumableTransfer.markChunkUploaded(testFile.path, 1);
-      
+
       // Act: Resume upload - should only upload remaining 3 chunks
-      final missingChunks = await resumableTransfer.getMissingChunks(testFile.path);
-      
+      final missingChunks =
+          await resumableTransfer.getMissingChunks(testFile.path);
+
       // Assert
       expect(missingChunks.length, 3);
       expect(missingChunks[0].index, 2);
@@ -172,10 +181,10 @@ void main() {
       // Arrange
       final testFile = File(path.join(tempDir.path, 'verify.txt'));
       await testFile.writeAsString('verify this file integrity');
-      
+
       // Act
       final hash = await resumableTransfer.calculateFileHash(testFile.path);
-      
+
       // Assert
       expect(hash, isNotNull);
       expect(hash.length, 64);

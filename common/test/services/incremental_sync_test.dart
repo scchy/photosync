@@ -66,14 +66,36 @@ void main() {
     test('should find missing files from server', () async {
       // Arrange
       final localPhotos = [
-        Photo(id: '1', filename: 'a.jpg', path: '/a.jpg', size: 100, createdAt: DateTime.now(), modifiedAt: DateTime.now(), hash: 'hash1'),
-        Photo(id: '2', filename: 'b.jpg', path: '/b.jpg', size: 200, createdAt: DateTime.now(), modifiedAt: DateTime.now(), hash: 'hash2'),
-        Photo(id: '3', filename: 'c.jpg', path: '/c.jpg', size: 300, createdAt: DateTime.now(), modifiedAt: DateTime.now(), hash: 'hash3'),
+        Photo(
+            id: '1',
+            filename: 'a.jpg',
+            path: '/a.jpg',
+            size: 100,
+            createdAt: DateTime.now(),
+            modifiedAt: DateTime.now(),
+            hash: 'hash1'),
+        Photo(
+            id: '2',
+            filename: 'b.jpg',
+            path: '/b.jpg',
+            size: 200,
+            createdAt: DateTime.now(),
+            modifiedAt: DateTime.now(),
+            hash: 'hash2'),
+        Photo(
+            id: '3',
+            filename: 'c.jpg',
+            path: '/c.jpg',
+            size: 300,
+            createdAt: DateTime.now(),
+            modifiedAt: DateTime.now(),
+            hash: 'hash3'),
       ];
       final serverHashes = {'hash1', 'hash2'}; // server has hash1 and hash2
 
       // Act
-      final missing = incrementalSync.findMissingFiles(localPhotos, serverHashes);
+      final missing =
+          incrementalSync.findMissingFiles(localPhotos, serverHashes);
 
       // Assert
       expect(missing.length, 1);
@@ -84,12 +106,20 @@ void main() {
     test('should return empty when all files exist on server', () async {
       // Arrange
       final localPhotos = [
-        Photo(id: '1', filename: 'a.jpg', path: '/a.jpg', size: 100, createdAt: DateTime.now(), modifiedAt: DateTime.now(), hash: 'hash1'),
+        Photo(
+            id: '1',
+            filename: 'a.jpg',
+            path: '/a.jpg',
+            size: 100,
+            createdAt: DateTime.now(),
+            modifiedAt: DateTime.now(),
+            hash: 'hash1'),
       ];
       final serverHashes = {'hash1'};
 
       // Act
-      final missing = incrementalSync.findMissingFiles(localPhotos, serverHashes);
+      final missing =
+          incrementalSync.findMissingFiles(localPhotos, serverHashes);
 
       // Assert
       expect(missing, isEmpty);
@@ -123,8 +153,20 @@ void main() {
       await file2.writeAsString('content2');
 
       final photos = [
-        Photo(id: '1', filename: 'file1.txt', path: file1.path, size: 8, createdAt: DateTime.now(), modifiedAt: DateTime.now()),
-        Photo(id: '2', filename: 'file2.txt', path: file2.path, size: 8, createdAt: DateTime.now(), modifiedAt: DateTime.now()),
+        Photo(
+            id: '1',
+            filename: 'file1.txt',
+            path: file1.path,
+            size: 8,
+            createdAt: DateTime.now(),
+            modifiedAt: DateTime.now()),
+        Photo(
+            id: '2',
+            filename: 'file2.txt',
+            path: file2.path,
+            size: 8,
+            createdAt: DateTime.now(),
+            modifiedAt: DateTime.now()),
       ];
 
       // Act
@@ -141,7 +183,13 @@ void main() {
       // Arrange
       final testFile = File(path.join(tempDir.path, 'test.txt'));
       await testFile.writeAsString('hello world');
-      var photo = Photo(id: '1', filename: 'test.txt', path: testFile.path, size: 11, createdAt: DateTime.now(), modifiedAt: DateTime.now());
+      var photo = Photo(
+          id: '1',
+          filename: 'test.txt',
+          path: testFile.path,
+          size: 11,
+          createdAt: DateTime.now(),
+          modifiedAt: DateTime.now());
 
       // Act
       final updatedPhoto = await incrementalSync.updatePhotoWithHash(photo);

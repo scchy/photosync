@@ -28,7 +28,8 @@ void main() {
     test('should store and retrieve thumbnail', () async {
       // Arrange
       final photoId = 'photo_001';
-      final thumbnailData = Uint8List.fromList([0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10]);
+      final thumbnailData =
+          Uint8List.fromList([0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10]);
 
       // Act
       await cache.put(photoId, thumbnailData);
@@ -107,7 +108,8 @@ void main() {
 
       // Act: Add files that exceed cache limit
       await cache.put('photo_009', Uint8List(100));
-      await Future.delayed(Duration(milliseconds: 10)); // Ensure different timestamps
+      await Future.delayed(
+          Duration(milliseconds: 10)); // Ensure different timestamps
       await cache.put('photo_010', Uint8List(100));
 
       // Assert: Oldest should be evicted

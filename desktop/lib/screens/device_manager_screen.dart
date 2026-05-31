@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:photosync_common/models/device.dart';
 import 'package:photosync_desktop/services/server_service.dart';
 import 'package:photosync_desktop/theme/app_theme.dart';
@@ -31,7 +32,8 @@ class _DeviceManagerScreenState extends State<DeviceManagerScreen> {
     _getNetworkInfo();
     _loadDevices();
     // 每 3 秒轮询一次服务器上的已连接设备
-    _refreshTimer = Timer.periodic(const Duration(seconds: 3), (_) => _loadDevices());
+    _refreshTimer =
+        Timer.periodic(const Duration(seconds: 3), (_) => _loadDevices());
   }
 
   @override
@@ -134,8 +136,8 @@ class _DeviceManagerScreenState extends State<DeviceManagerScreen> {
                 Text(
                   '服务器运行中',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                        fontWeight: FontWeight.w600,
+                      ),
                 ),
               ],
             ),
@@ -156,6 +158,25 @@ class _DeviceManagerScreenState extends State<DeviceManagerScreen> {
                 label: const Text('复制连接地址'),
               ),
             ),
+            if (_localIp.isNotEmpty) ...[
+              const SizedBox(height: AppTheme.spacingLG),
+              Center(
+                child: QrImageView(
+                  data: serverUrl,
+                  version: QrVersions.auto,
+                  size: 200,
+                ),
+              ),
+              const SizedBox(height: AppTheme.spacingMD),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _showScanGuide,
+                  icon: const Icon(Icons.qr_code_scanner),
+                  label: const Text('扫描二维码'),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -225,7 +246,8 @@ class _DeviceManagerScreenState extends State<DeviceManagerScreen> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.warning_amber, color: Colors.orange.shade700, size: 18),
+                  Icon(Icons.warning_amber,
+                      color: Colors.orange.shade700, size: 18),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -297,15 +319,31 @@ class _DeviceManagerScreenState extends State<DeviceManagerScreen> {
           Text(
             '等待手机端连接...',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppTheme.textSecondaryColor,
-            ),
+                  color: AppTheme.textSecondaryColor,
+                ),
           ),
         ],
       ),
     );
   }
 
+  bool _isDeviceOffline(Device device) {
+    if (device.lastSeen == null) return true;
+    return DateTime.now().difference(device.lastSeen!) >
+        const Duration(minutes: 2);
+  }
+
+  String _formatLastSeen(DateTime? lastSeen) {
+    if (lastSeen == null) return '从未连接';
+    final diff = DateTime.now().difference(lastSeen);
+    if (diff.inSeconds < 60) return '刚刚';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}分钟前';
+    if (diff.inHours < 24) return '${diff.inHours}小时前';
+    return '${diff.inDays}天前';
+  }
+
   Widget _buildDeviceCard(Device device) {
+    final isOffline = _isDeviceOffline(device);
     return Card(
       margin: const EdgeInsets.only(bottom: AppTheme.spacingMD),
       child: ListTile(
@@ -317,14 +355,24 @@ class _DeviceManagerScreenState extends State<DeviceManagerScreen> {
             borderRadius: BorderRadius.circular(AppTheme.smallRadius),
           ),
           child: Icon(
-            device.type == 'mobile'
-                ? Icons.smartphone
-                : Icons.computer,
+            device.type == 'mobile' ? Icons.smartphone : Icons.computer,
             color: AppTheme.primaryColor,
           ),
         ),
         title: Text(device.name),
-        subtitle: Text('${device.ip}:${device.port}'),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('${device.ip}:${device.port}'),
+            Text(
+              _formatLastSeen(device.lastSeen),
+              style: TextStyle(
+                fontSize: 12,
+                color: isOffline ? Colors.grey : AppTheme.textSecondaryColor,
+              ),
+            ),
+          ],
+        ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -332,19 +380,47 @@ class _DeviceManagerScreenState extends State<DeviceManagerScreen> {
               width: 8,
               height: 8,
               decoration: BoxDecoration(
-                color: AppTheme.successColor,
+                color: isOffline ? Colors.grey : AppTheme.successColor,
                 shape: BoxShape.circle,
               ),
             ),
             const SizedBox(width: AppTheme.spacingSM),
             Text(
-              '在线',
+              isOffline ? '离线' : '在线',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppTheme.successColor,
-              ),
+                    color: isOffline ? Colors.grey : AppTheme.successColor,
+                  ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showScanGuide() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('扫描二维码'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('请使用手机 PhotoSync App 扫描上方二维码，或按照以下步骤操作：'),
+            SizedBox(height: 12),
+            Text('1. 打开手机 PhotoSync App'),
+            Text('2. 进入「可同步设备」页面'),
+            Text('3. 点击右上角的「手动添加」'),
+            Text('4. 输入本机显示的 IP 地址和端口'),
+            Text('5. 点击「连接」完成配对'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('知道了'),
+          ),
+        ],
       ),
     );
   }

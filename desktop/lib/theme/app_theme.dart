@@ -6,23 +6,23 @@ class AppTheme {
   static const Color primaryColor = Color(0xFF2D9CDB);
   static const Color secondaryColor = Color(0xFF27AE60);
   static const Color accentColor = Color(0xFF6FCF97);
-  
+
   // 背景色
   static const Color backgroundColor = Color(0xFFF8F9FA);
   static const Color surfaceColor = Colors.white;
   static const Color darkBackgroundColor = Color(0xFF1A1A2E);
-  
+
   // 文字色
   static const Color textPrimaryColor = Color(0xFF1A1A2E);
   static const Color textSecondaryColor = Color(0xFF6C757D);
   static const Color textLightColor = Color(0xFFADB5BD);
-  
+
   // 状态色
   static const Color successColor = Color(0xFF27AE60);
   static const Color warningColor = Color(0xFFF2C94C);
   static const Color errorColor = Color(0xFFEB5757);
   static const Color infoColor = Color(0xFF2D9CDB);
-  
+
   // 分割线
   static const Color dividerColor = Color(0xFFE9ECEF);
 

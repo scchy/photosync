@@ -55,7 +55,7 @@ class TransferService {
 
       // 发送请求并跟踪进度
       final response = await request.send();
-      
+
       if (response.statusCode == 200) {
         final responseBody = await response.stream.bytesToString();
         final data = jsonDecode(responseBody);
@@ -81,7 +81,8 @@ class TransferService {
   /// 检查服务器上已存在的文件
   Future<Set<String>> checkExistingFiles(List<String> hashes) async {
     try {
-      final uri = Uri.parse('http://${_device.ip}:${_device.port}/api/sync/check');
+      final uri =
+          Uri.parse('http://${_device.ip}:${_device.port}/api/sync/check');
       final response = await _client.post(
         uri,
         headers: {'Content-Type': 'application/json'},
@@ -101,7 +102,8 @@ class TransferService {
   /// 获取服务器同步状态
   Future<SyncStatusResult> getSyncStatus() async {
     try {
-      final uri = Uri.parse('http://${_device.ip}:${_device.port}/api/sync/status');
+      final uri =
+          Uri.parse('http://${_device.ip}:${_device.port}/api/sync/status');
       final response = await _client.get(uri);
 
       if (response.statusCode == 200) {

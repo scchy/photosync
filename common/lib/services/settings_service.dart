@@ -9,10 +9,10 @@ class SettingsService {
   static const String _keySyncTodayOnly = 'photosync_sync_today_only';
   static const String _keySyncQuality = 'photosync_sync_quality';
 
-  bool _autoSync = true;          // 默认开启自动同步
-  bool _syncOnWifiOnly = true;    // 默认仅WiFi同步
-  bool _syncOnlyNew = true;       // 默认仅同步新照片
-  bool _syncTodayOnly = true;     // 默认仅同步当天照片
+  bool _autoSync = true; // 默认开启自动同步
+  bool _syncOnWifiOnly = true; // 默认仅WiFi同步
+  bool _syncOnlyNew = true; // 默认仅同步新照片
+  bool _syncTodayOnly = true; // 默认仅同步当天照片
   String _syncQuality = '原图';
 
   bool get autoSync => _autoSync;

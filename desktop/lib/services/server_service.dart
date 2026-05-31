@@ -20,6 +20,7 @@ class DesktopServer {
   late Database _db;
   late String _storagePath;
   final List<Device> _connectedDevices = [];
+  Timer? _cleanupTimer;
 
   int get port => _server.port;
   String get storagePath => _storagePath;
@@ -50,6 +51,13 @@ class DesktopServer {
 
     _server = await shelf_io.serve(handler, InternetAddress.anyIPv4, 0);
     print('Server running on port ${_server.port}');
+
+    _cleanupTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      final cutoff = DateTime.now().subtract(const Duration(minutes: 2));
+      _connectedDevices.removeWhere(
+        (d) => d.lastSeen == null || d.lastSeen!.isBefore(cutoff),
+      );
+    });
   }
 
   /// 初始化数据库
@@ -75,7 +83,8 @@ class DesktopServer {
         sync_time INTEGER
       )
     ''');
-    _db.execute('CREATE INDEX IF NOT EXISTS idx_created_at ON photos(created_at)');
+    _db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_created_at ON photos(created_at)');
     _db.execute('CREATE INDEX IF NOT EXISTS idx_device ON photos(device_id)');
 
     _db.execute('''
@@ -91,7 +100,8 @@ class DesktopServer {
         total_size INTEGER
       )
     ''');
-    _db.execute('CREATE INDEX IF NOT EXISTS idx_sync_log_time ON sync_logs(timestamp DESC)');
+    _db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_sync_log_time ON sync_logs(timestamp DESC)');
   }
 
   /// 初始化存储目录
@@ -118,7 +128,8 @@ class DesktopServer {
 
         if (name == 'file') {
           fileData = await part.readBytes();
-          final filenameMatch = RegExp(r'filename="([^"]+)"').firstMatch(disposition);
+          final filenameMatch =
+              RegExp(r'filename="([^"]+)"').firstMatch(disposition);
           filename = filenameMatch?.group(1) ?? 'unknown.jpg';
         } else if (name == 'metadata') {
           final metaStr = await part.readString();
@@ -138,7 +149,8 @@ class DesktopServer {
       final album = metadata?['album'] as String?;
 
       // 按日期组织文件
-      final yearMonth = '${createdAt.year}/${createdAt.month.toString().padLeft(2, '0')}';
+      final yearMonth =
+          '${createdAt.year}/${createdAt.month.toString().padLeft(2, '0')}';
       final destDir = path.join(_storagePath, deviceId ?? 'unknown', yearMonth);
       Directory(destDir).createSync(recursive: true);
 
@@ -171,17 +183,20 @@ class DesktopServer {
         type: 'upload',
         status: 'success',
         message: '接收照片: $filename',
-        details: '大小: ${_formatBytes(fileData.length)}, 来自: ${deviceId ?? '未知'}',
+        details:
+            '大小: ${_formatBytes(fileData.length)}, 来自: ${deviceId ?? '未知'}',
         deviceName: deviceId,
         photoCount: 1,
         totalSize: fileData.length,
       );
 
-      return Response.ok(jsonEncode({
-        'success': true,
-        'file_id': photoId,
-        'path': destPath,
-      }), headers: {'Content-Type': 'application/json'});
+      return Response.ok(
+          jsonEncode({
+            'success': true,
+            'file_id': photoId,
+            'path': destPath,
+          }),
+          headers: {'Content-Type': 'application/json'});
     } catch (e) {
       print('Upload error: $e');
       _addSyncLog(
@@ -197,9 +212,11 @@ class DesktopServer {
   /// 处理设备连接通知
   /// 处理获取已连接设备列表
   Response _handleGetDevices(Request request) {
-    return Response.ok(jsonEncode({
-      'devices': _connectedDevices.map((d) => d.toJson()).toList(),
-    }), headers: {'Content-Type': 'application/json'});
+    return Response.ok(
+        jsonEncode({
+          'devices': _connectedDevices.map((d) => d.toJson()).toList(),
+        }),
+        headers: {'Content-Type': 'application/json'});
   }
 
   Future<Response> _handleDeviceConnect(Request request) async {
@@ -207,11 +224,21 @@ class DesktopServer {
       final body = await request.readAsString();
       final data = jsonDecode(body);
       final device = Device.fromJson(data);
+      final now = DateTime.now();
 
-      final isNew = !_connectedDevices.any((d) => d.id == device.id);
+      final existingIndex =
+          _connectedDevices.indexWhere((d) => d.id == device.id);
+      final isNew = existingIndex < 0;
       if (isNew) {
-        _connectedDevices.add(device);
+        _connectedDevices.add(device.copyWith(lastSeen: now));
         print('Device connected: ${device.name} (${device.ip}:${device.port})');
+      } else {
+        _connectedDevices[existingIndex] =
+            _connectedDevices[existingIndex].copyWith(
+          lastSeen: now,
+          ip: device.ip,
+          port: device.port,
+        );
       }
 
       _addSyncLog(
@@ -222,10 +249,12 @@ class DesktopServer {
         deviceName: device.name,
       );
 
-      return Response.ok(jsonEncode({
-        'success': true,
-        'message': 'Device registered',
-      }), headers: {'Content-Type': 'application/json'});
+      return Response.ok(
+          jsonEncode({
+            'success': true,
+            'message': 'Device registered',
+          }),
+          headers: {'Content-Type': 'application/json'});
     } catch (e) {
       _addSyncLog(
         type: 'error',
@@ -245,13 +274,16 @@ class DesktopServer {
     final lastSync = _db.select('SELECT MAX(sync_time) as last FROM photos');
     final lastSyncTime = lastSync.first['last'] as int?;
 
-    return Response.ok(jsonEncode({
-      'total_files': count,
-      'last_sync': lastSyncTime != null
-          ? DateTime.fromMillisecondsSinceEpoch(lastSyncTime).toIso8601String()
-          : null,
-      'storage_available': _getAvailableStorage(),
-    }), headers: {'Content-Type': 'application/json'});
+    return Response.ok(
+        jsonEncode({
+          'total_files': count,
+          'last_sync': lastSyncTime != null
+              ? DateTime.fromMillisecondsSinceEpoch(lastSyncTime)
+                  .toIso8601String()
+              : null,
+          'storage_available': _getAvailableStorage(),
+        }),
+        headers: {'Content-Type': 'application/json'});
   }
 
   /// 处理文件存在性检查
@@ -275,7 +307,8 @@ class DesktopServer {
   /// 处理获取照片列表
   Future<Response> _handleGetPhotos(Request request) async {
     final page = int.tryParse(request.url.queryParameters['page'] ?? '0') ?? 0;
-    final limit = int.tryParse(request.url.queryParameters['limit'] ?? '50') ?? 50;
+    final limit =
+        int.tryParse(request.url.queryParameters['limit'] ?? '50') ?? 50;
     final deviceId = request.url.queryParameters['device_id'];
 
     String sql = 'SELECT * FROM photos';
@@ -290,14 +323,18 @@ class DesktopServer {
     params.addAll([limit, page * limit]);
 
     final results = _db.select(sql, params);
-    final photos = results.map((row) => {
-      'id': row['id'],
-      'filename': row['filename'],
-      'path': row['path'],
-      'size': row['size'],
-      'created_at': DateTime.fromMillisecondsSinceEpoch(row['created_at'] as int).toIso8601String(),
-      'album': row['album'],
-    }).toList();
+    final photos = results
+        .map((row) => {
+              'id': row['id'],
+              'filename': row['filename'],
+              'path': row['path'],
+              'size': row['size'],
+              'created_at':
+                  DateTime.fromMillisecondsSinceEpoch(row['created_at'] as int)
+                      .toIso8601String(),
+              'album': row['album'],
+            })
+        .toList();
 
     return Response.ok(jsonEncode({'photos': photos}),
         headers: {'Content-Type': 'application/json'});
@@ -315,18 +352,22 @@ class DesktopServer {
       ORDER BY created_at DESC
     ''');
 
-    final photos = results.map((row) => {
-      'id': row['id'],
-      'filename': row['filename'],
-      'path': row['path'],
-      'size': row['size'],
-      'user': row['user'] ?? 'unknown',
-      'year': row['year'],
-      'month': row['month'],
-      'created_at': DateTime.fromMillisecondsSinceEpoch(row['created_at'] as int).toIso8601String(),
-      'album': row['album'],
-      'hash': row['hash'],
-    }).toList();
+    final photos = results
+        .map((row) => {
+              'id': row['id'],
+              'filename': row['filename'],
+              'path': row['path'],
+              'size': row['size'],
+              'user': row['user'] ?? 'unknown',
+              'year': row['year'],
+              'month': row['month'],
+              'created_at':
+                  DateTime.fromMillisecondsSinceEpoch(row['created_at'] as int)
+                      .toIso8601String(),
+              'album': row['album'],
+              'hash': row['hash'],
+            })
+        .toList();
 
     return Response.ok(jsonEncode({'photos': photos}),
         headers: {'Content-Type': 'application/json'});
@@ -394,12 +435,20 @@ class DesktopServer {
       LIMIT 5
     ''');
 
-    return Response.ok(jsonEncode({
-      'total': total,
-      'daily': daily.map((r) => {'date': r['day'], 'count': r['count']}).toList(),
-      'monthly': monthly.map((r) => {'month': r['month'], 'count': r['count']}).toList(),
-      'yearly': yearly.map((r) => {'year': r['year'], 'count': r['count']}).toList(),
-    }), headers: {'Content-Type': 'application/json'});
+    return Response.ok(
+        jsonEncode({
+          'total': total,
+          'daily': daily
+              .map((r) => {'date': r['day'], 'count': r['count']})
+              .toList(),
+          'monthly': monthly
+              .map((r) => {'month': r['month'], 'count': r['count']})
+              .toList(),
+          'yearly': yearly
+              .map((r) => {'year': r['year'], 'count': r['count']})
+              .toList(),
+        }),
+        headers: {'Content-Type': 'application/json'});
   }
 
   /// 处理健康检查
@@ -446,7 +495,8 @@ class DesktopServer {
   }
 
   /// 公共方法：获取同步日志（UI直接调用）
-  Future<List<Map<String, dynamic>>> getSyncLogs({int limit = 200, String? type, String? status}) async {
+  Future<List<Map<String, dynamic>>> getSyncLogs(
+      {int limit = 200, String? type, String? status}) async {
     String whereClause = '';
     final args = <Object?>[];
 
@@ -455,7 +505,9 @@ class DesktopServer {
       args.add(type);
     }
     if (status != null && status != 'all') {
-      whereClause = whereClause.isEmpty ? 'WHERE status = ?' : '$whereClause AND status = ?';
+      whereClause = whereClause.isEmpty
+          ? 'WHERE status = ?'
+          : '$whereClause AND status = ?';
       args.add(status);
     }
 
@@ -465,17 +517,21 @@ class DesktopServer {
       LIMIT ?
     ''', [...args, limit]);
 
-    return results.map((row) => {
-      'id': row['id'],
-      'timestamp': DateTime.fromMillisecondsSinceEpoch(row['timestamp'] as int).toIso8601String(),
-      'type': row['type'],
-      'status': row['status'],
-      'message': row['message'],
-      'details': row['details'],
-      'device_name': row['device_name'],
-      'photo_count': row['photo_count'],
-      'total_size': row['total_size'],
-    }).toList();
+    return results
+        .map((row) => {
+              'id': row['id'],
+              'timestamp':
+                  DateTime.fromMillisecondsSinceEpoch(row['timestamp'] as int)
+                      .toIso8601String(),
+              'type': row['type'],
+              'status': row['status'],
+              'message': row['message'],
+              'details': row['details'],
+              'device_name': row['device_name'],
+              'photo_count': row['photo_count'],
+              'total_size': row['total_size'],
+            })
+        .toList();
   }
 
   /// 公共方法：清空同步日志
@@ -486,7 +542,8 @@ class DesktopServer {
   /// 公共方法：获取日志统计摘要
   Future<Map<String, dynamic>> getSyncLogSummary() async {
     final now = DateTime.now();
-    final todayStart = DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
+    final todayStart =
+        DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
 
     final todayResult = _db.select('''
       SELECT COUNT(*) as count, COALESCE(SUM(photo_count), 0) as photos, COALESCE(SUM(total_size), 0) as size
@@ -527,18 +584,22 @@ class DesktopServer {
       ORDER BY created_at DESC
     ''');
 
-    return results.map((row) => {
-      'id': row['id'],
-      'filename': row['filename'],
-      'path': row['path'],
-      'size': row['size'],
-      'user': row['user'] ?? 'unknown',
-      'year': row['year'],
-      'month': row['month'],
-      'created_at': DateTime.fromMillisecondsSinceEpoch(row['created_at'] as int).toIso8601String(),
-      'album': row['album'],
-      'hash': row['hash'],
-    }).toList();
+    return results
+        .map((row) => {
+              'id': row['id'],
+              'filename': row['filename'],
+              'path': row['path'],
+              'size': row['size'],
+              'user': row['user'] ?? 'unknown',
+              'year': row['year'],
+              'month': row['month'],
+              'created_at':
+                  DateTime.fromMillisecondsSinceEpoch(row['created_at'] as int)
+                      .toIso8601String(),
+              'album': row['album'],
+              'hash': row['hash'],
+            })
+        .toList();
   }
 
   /// 公共方法：获取统计（UI直接调用）
@@ -572,9 +633,13 @@ class DesktopServer {
 
     return {
       'total': total,
-      'daily': daily.map((r) => {'date': r['day'], 'count': r['count']}).toList(),
-      'monthly': monthly.map((r) => {'month': r['month'], 'count': r['count']}).toList(),
-      'yearly': yearly.map((r) => {'year': r['year'], 'count': r['count']}).toList(),
+      'daily':
+          daily.map((r) => {'date': r['day'], 'count': r['count']}).toList(),
+      'monthly': monthly
+          .map((r) => {'month': r['month'], 'count': r['count']})
+          .toList(),
+      'yearly':
+          yearly.map((r) => {'year': r['year'], 'count': r['count']}).toList(),
     };
   }
 
@@ -622,11 +687,13 @@ class DesktopServer {
   static String _formatBytes(int bytes) {
     if (bytes < 1024) return '${bytes}B';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)}KB';
-    if (bytes < 1024 * 1024 * 1024) return '${(bytes / (1024 * 1024)).toStringAsFixed(1)}MB';
+    if (bytes < 1024 * 1024 * 1024)
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)}MB';
     return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(2)}GB';
   }
 
   void stop() {
+    _cleanupTimer?.cancel();
     _server.close();
     _db.dispose();
   }

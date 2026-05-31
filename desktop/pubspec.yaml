@@ -37,6 +37,8 @@ dependencies:
   window_manager: ^0.3.7
   # 文件系统
   file_selector: ^1.0.1
+  # 二维码
+  qr_flutter: ^4.1.0
   # 网络状态
   connectivity_plus: ^5.0.2
   shared_preferences: ^2.2.2

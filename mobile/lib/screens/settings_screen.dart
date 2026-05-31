@@ -71,7 +71,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           SliverToBoxAdapter(
             child: _buildHeader(),
           ),
-
           SliverToBoxAdapter(
             child: _buildSection(
               title: '账户',
@@ -83,7 +82,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       color: AppTheme.primaryColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(AppTheme.smallRadius),
                     ),
-                    child: Icon(Icons.person, color: AppTheme.primaryColor, size: 20),
+                    child: Icon(Icons.person,
+                        color: AppTheme.primaryColor, size: 20),
                   ),
                   title: Text(_username ?? '未知用户'),
                   subtitle: const Text('当前登录用户'),
@@ -95,7 +95,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       color: Colors.red.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(AppTheme.smallRadius),
                     ),
-                    child: const Icon(Icons.logout, color: Colors.red, size: 20),
+                    child:
+                        const Icon(Icons.logout, color: Colors.red, size: 20),
                   ),
                   title: const Text('退出登录'),
                   textColor: Colors.red,
@@ -104,7 +105,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
           ),
-
           SliverToBoxAdapter(
             child: _buildSection(
               title: '同步设置',
@@ -162,24 +162,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
           ),
-
           SliverToBoxAdapter(
             child: _buildSection(
               title: '已保存设备',
               children: _savedDevices.isEmpty
                   ? [
                       const ListTile(
-                        leading: Icon(Icons.devices_other, color: AppTheme.textLightColor),
+                        leading: Icon(Icons.devices_other,
+                            color: AppTheme.textLightColor),
                         title: Text('暂无保存的设备'),
                         subtitle: Text('在"可同步设备"页面添加桌面端设备'),
                       ),
                     ]
                   : [
-                      ..._savedDevices.map((device) => _buildDeviceTile(device)),
+                      ..._savedDevices
+                          .map((device) => _buildDeviceTile(device)),
                     ],
             ),
           ),
-
           SliverToBoxAdapter(
             child: _buildSection(
               title: '关于',
@@ -239,8 +239,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: Text(
             title,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: AppTheme.textSecondaryColor,
-            ),
+                  color: AppTheme.textSecondaryColor,
+                ),
           ),
         ),
         Container(
@@ -354,7 +354,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           color: AppTheme.primaryColor.withOpacity(0.1),
           borderRadius: BorderRadius.circular(AppTheme.smallRadius),
         ),
-        child: const Icon(Icons.computer, color: AppTheme.primaryColor, size: 20),
+        child:
+            const Icon(Icons.computer, color: AppTheme.primaryColor, size: 20),
       ),
       title: Text(device.name),
       subtitle: Text('${device.ip}:${device.port}'),
@@ -362,7 +363,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           IconButton(
-            icon: const Icon(Icons.edit, size: 20, color: AppTheme.textSecondaryColor),
+            icon: const Icon(Icons.edit,
+                size: 20, color: AppTheme.textSecondaryColor),
             onPressed: () => _showEditDeviceDialog(device),
           ),
           IconButton(
@@ -405,8 +407,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('保存')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('取消')),
+          ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('保存')),
         ],
       ),
     );
@@ -432,7 +438,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         title: const Text('删除设备'),
         content: Text('确定要删除设备 "${device.name}" 吗？'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('取消')),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
@@ -486,15 +494,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: AppTheme.spacingMD),
             ...options.map((option) => ListTile(
-              title: Text(option),
-              trailing: option == _syncQuality
-                  ? const Icon(Icons.check, color: AppTheme.primaryColor)
-                  : null,
-              onTap: () {
-                onSelected(option);
-                Navigator.pop(context);
-              },
-            )),
+                  title: Text(option),
+                  trailing: option == _syncQuality
+                      ? const Icon(Icons.check, color: AppTheme.primaryColor)
+                      : null,
+                  onTap: () {
+                    onSelected(option);
+                    Navigator.pop(context);
+                  },
+                )),
           ],
         ),
       ),

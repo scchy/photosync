@@ -88,36 +88,44 @@ class _AuthScreenState extends State<AuthScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Icon(Icons.photo_library_rounded, size: 80, color: AppTheme.primaryColor),
+              Icon(Icons.photo_library_rounded,
+                  size: 80, color: AppTheme.primaryColor),
               const SizedBox(height: AppTheme.spacingLG),
               Text(
                 'PhotoSync',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
+                style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryColor),
               ),
               const SizedBox(height: AppTheme.spacingSM),
               Text(
                 _isRegister ? '注册新账号' : '欢迎回来',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, color: AppTheme.textSecondaryColor),
+                style:
+                    TextStyle(fontSize: 16, color: AppTheme.textSecondaryColor),
               ),
               const SizedBox(height: AppTheme.spacingXL),
               TextField(
                 controller: _usernameCtrl,
-                decoration: const InputDecoration(labelText: '用户名', prefixIcon: Icon(Icons.person_outline)),
+                decoration: const InputDecoration(
+                    labelText: '用户名', prefixIcon: Icon(Icons.person_outline)),
               ),
               const SizedBox(height: AppTheme.spacingMD),
               TextField(
                 controller: _passwordCtrl,
                 obscureText: true,
-                decoration: const InputDecoration(labelText: '密码', prefixIcon: Icon(Icons.lock_outline)),
+                decoration: const InputDecoration(
+                    labelText: '密码', prefixIcon: Icon(Icons.lock_outline)),
               ),
               if (_isRegister) ...[
                 const SizedBox(height: AppTheme.spacingMD),
                 TextField(
                   controller: _confirmPasswordCtrl,
                   obscureText: true,
-                  decoration: const InputDecoration(labelText: '确认密码', prefixIcon: Icon(Icons.lock_outline)),
+                  decoration: const InputDecoration(
+                      labelText: '确认密码', prefixIcon: Icon(Icons.lock_outline)),
                 ),
               ],
               if (_errorMsg != null) ...[

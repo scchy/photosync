@@ -6,7 +6,8 @@ import 'package:photosync_desktop/theme/app_theme.dart';
 class SyncLogScreen extends StatefulWidget {
   final DesktopServer desktopServer;
 
-  const SyncLogScreen({Key? key, required this.desktopServer}) : super(key: key);
+  const SyncLogScreen({Key? key, required this.desktopServer})
+      : super(key: key);
 
   @override
   State<SyncLogScreen> createState() => _SyncLogScreenState();
@@ -41,7 +42,8 @@ class _SyncLogScreenState extends State<SyncLogScreen> {
   void initState() {
     super.initState();
     _loadData();
-    _refreshTimer = Timer.periodic(const Duration(seconds: 3), (_) => _loadData());
+    _refreshTimer =
+        Timer.periodic(const Duration(seconds: 3), (_) => _loadData());
   }
 
   @override
@@ -71,8 +73,12 @@ class _SyncLogScreenState extends State<SyncLogScreen> {
         title: const Text('清空日志'),
         content: const Text('确定要清空所有同步日志吗？此操作不可恢复。'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('清空')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('取消')),
+          ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('清空')),
         ],
       ),
     );
@@ -89,14 +95,18 @@ class _SyncLogScreenState extends State<SyncLogScreen> {
         title: const Text('同步日志'),
         actions: [
           IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
-          IconButton(icon: const Icon(Icons.delete_outline), onPressed: _clearLogs),
+          IconButton(
+              icon: const Icon(Icons.delete_outline), onPressed: _clearLogs),
         ],
       ),
       body: Column(
         children: [
           _buildSummaryCards(),
           _buildFilterBar(),
-          Expanded(child: _isLoading ? const Center(child: CircularProgressIndicator()) : _buildLogList()),
+          Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _buildLogList()),
         ],
       ),
     );
@@ -114,19 +124,24 @@ class _SyncLogScreenState extends State<SyncLogScreen> {
       padding: const EdgeInsets.all(AppTheme.spacingMD),
       child: Row(
         children: [
-          _buildSummaryCard('今日上传', '$todayUploads 次', Icons.cloud_upload, AppTheme.successColor),
+          _buildSummaryCard('今日上传', '$todayUploads 次', Icons.cloud_upload,
+              AppTheme.successColor),
           const SizedBox(width: AppTheme.spacingMD),
-          _buildSummaryCard('今日照片', '$todayPhotos 张', Icons.photo_library, AppTheme.primaryColor),
+          _buildSummaryCard('今日照片', '$todayPhotos 张', Icons.photo_library,
+              AppTheme.primaryColor),
           const SizedBox(width: AppTheme.spacingMD),
-          _buildSummaryCard('错误', '$errorCount 条', Icons.error_outline, AppTheme.errorColor),
+          _buildSummaryCard(
+              '错误', '$errorCount 条', Icons.error_outline, AppTheme.errorColor),
           const SizedBox(width: AppTheme.spacingMD),
-          _buildSummaryCard('设备数', '$deviceCount 台', Icons.devices, AppTheme.infoColor),
+          _buildSummaryCard(
+              '设备数', '$deviceCount 台', Icons.devices, AppTheme.infoColor),
         ],
       ),
     );
   }
 
-  Widget _buildSummaryCard(String label, String value, IconData icon, Color color) {
+  Widget _buildSummaryCard(
+      String label, String value, IconData icon, Color color) {
     return Expanded(
       child: Card(
         child: Padding(
@@ -135,9 +150,17 @@ class _SyncLogScreenState extends State<SyncLogScreen> {
             children: [
               Icon(icon, color: color, size: 22),
               const SizedBox(height: 6),
-              Text(value, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+              Text(value,
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold)),
               const SizedBox(height: 2),
-              Text(label, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondaryColor)),
+              Text(label,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: AppTheme.textSecondaryColor)),
             ],
           ),
         ),
@@ -154,14 +177,18 @@ class _SyncLogScreenState extends State<SyncLogScreen> {
             child: DropdownButtonFormField<String>(
               value: _filterType,
               decoration: const InputDecoration(
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 border: OutlineInputBorder(),
                 isDense: true,
               ),
-              items: _typeFilters.map((f) => DropdownMenuItem(
-                value: f['value'],
-                child: Text(f['label']!, style: const TextStyle(fontSize: 13)),
-              )).toList(),
+              items: _typeFilters
+                  .map((f) => DropdownMenuItem(
+                        value: f['value'],
+                        child: Text(f['label']!,
+                            style: const TextStyle(fontSize: 13)),
+                      ))
+                  .toList(),
               onChanged: (value) {
                 setState(() => _filterType = value!);
                 _loadData();
@@ -173,14 +200,18 @@ class _SyncLogScreenState extends State<SyncLogScreen> {
             child: DropdownButtonFormField<String>(
               value: _filterStatus,
               decoration: const InputDecoration(
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 border: OutlineInputBorder(),
                 isDense: true,
               ),
-              items: _statusFilters.map((f) => DropdownMenuItem(
-                value: f['value'],
-                child: Text(f['label']!, style: const TextStyle(fontSize: 13)),
-              )).toList(),
+              items: _statusFilters
+                  .map((f) => DropdownMenuItem(
+                        value: f['value'],
+                        child: Text(f['label']!,
+                            style: const TextStyle(fontSize: 13)),
+                      ))
+                  .toList(),
               onChanged: (value) {
                 setState(() => _filterStatus = value!);
                 _loadData();
@@ -213,10 +244,11 @@ class _SyncLogScreenState extends State<SyncLogScreen> {
       itemCount: _logs.length,
       itemBuilder: (context, index) {
         final log = _logs[index];
-        final isFirstOfDay = index == 0 || !_isSameDay(
-          DateTime.parse(_logs[index]['timestamp']),
-          DateTime.parse(_logs[index - 1]['timestamp']),
-        );
+        final isFirstOfDay = index == 0 ||
+            !_isSameDay(
+              DateTime.parse(_logs[index]['timestamp']),
+              DateTime.parse(_logs[index - 1]['timestamp']),
+            );
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -239,13 +271,14 @@ class _SyncLogScreenState extends State<SyncLogScreen> {
       label = '${date.month}月${date.day}日';
     }
     return Padding(
-      padding: const EdgeInsets.only(top: AppTheme.spacingSM, bottom: AppTheme.spacingSM),
+      padding: const EdgeInsets.only(
+          top: AppTheme.spacingSM, bottom: AppTheme.spacingSM),
       child: Text(
         label,
         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-          color: AppTheme.textSecondaryColor,
-          fontWeight: FontWeight.w600,
-        ),
+              color: AppTheme.textSecondaryColor,
+              fontWeight: FontWeight.w600,
+            ),
       ),
     );
   }
@@ -279,14 +312,20 @@ class _SyncLogScreenState extends State<SyncLogScreen> {
                 children: [
                   Text(
                     log['message'] as String? ?? '',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.copyWith(fontWeight: FontWeight.w500),
                   ),
                   if (log['details'] != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
                         log['details'] as String,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondaryColor),
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: AppTheme.textSecondaryColor),
                       ),
                     ),
                   const SizedBox(height: 6),
@@ -296,15 +335,22 @@ class _SyncLogScreenState extends State<SyncLogScreen> {
                       const SizedBox(width: 8),
                       Text(
                         _formatTime(timestamp),
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppTheme.textLightColor),
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: AppTheme.textLightColor),
                       ),
                       if (log['device_name'] != null) ...[
                         const SizedBox(width: 8),
-                        Icon(Icons.devices, size: 12, color: AppTheme.textLightColor),
+                        Icon(Icons.devices,
+                            size: 12, color: AppTheme.textLightColor),
                         const SizedBox(width: 2),
                         Text(
                           log['device_name'] as String,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppTheme.textLightColor),
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(color: AppTheme.textLightColor),
                         ),
                       ],
                     ],

@@ -35,7 +35,8 @@ class StorageManager {
   /// 根据日期获取存储路径
   Future<String> getStoragePathForDate(DateTime date, String filename) async {
     if (_storagePath == null) {
-      throw StateError('StorageManager not initialized. Call initialize() first.');
+      throw StateError(
+          'StorageManager not initialized. Call initialize() first.');
     }
 
     final yearMonth = '${date.year}/${date.month.toString().padLeft(2, '0')}';
@@ -79,7 +80,8 @@ class StorageManager {
 
       // 保存缩略图
       final filename = path.basename(filePath);
-      final thumbDir = path.join(_thumbnailPath!, path.dirname(filePath).replaceAll(_storagePath!, ''));
+      final thumbDir = path.join(_thumbnailPath!,
+          path.dirname(filePath).replaceAll(_storagePath!, ''));
       await Directory(thumbDir).create(recursive: true);
 
       final thumbPath = path.join(thumbDir, filename);
@@ -99,12 +101,12 @@ class StorageManager {
       if (_storagePath == null) {
         throw StateError('StorageManager not initialized');
       }
-      
+
       final directory = Directory(_storagePath!);
       if (!await directory.exists()) {
         await directory.create(recursive: true);
       }
-      
+
       // 使用 statfs 获取磁盘空间（Linux）
       final result = await Process.run('df', ['-k', _storagePath!]);
       if (result.exitCode == 0) {
@@ -120,7 +122,7 @@ class StorageManager {
           }
         }
       }
-      
+
       // 如果无法获取，返回一个默认值
       return 1024 * 1024 * 1024 * 100; // 100GB
     } catch (e) {

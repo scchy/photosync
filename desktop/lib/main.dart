@@ -97,7 +97,9 @@ class _PhotoSyncDesktopAppState extends State<PhotoSyncDesktopApp> {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.light,
-      home: _isLoggedIn ? _buildMainScaffold() : AuthScreen(onLoginSuccess: _handleLoginSuccess),
+      home: _isLoggedIn
+          ? _buildMainScaffold()
+          : AuthScreen(onLoginSuccess: _handleLoginSuccess),
     );
   }
 

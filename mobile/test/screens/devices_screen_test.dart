@@ -20,7 +20,8 @@ void main() {
       expect(find.byType(DevicesScreen), findsOneWidget);
     });
 
-    testWidgets('should show scanning state initially', (WidgetTester tester) async {
+    testWidgets('should show scanning state initially',
+        (WidgetTester tester) async {
       // Act
       await tester.pumpWidget(
         MaterialApp(
@@ -34,7 +35,8 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
     });
 
-    testWidgets('should show empty state when no devices found', (WidgetTester tester) async {
+    testWidgets('should show empty state when no devices found',
+        (WidgetTester tester) async {
       // Act - wait for scanning to complete
       await tester.pumpWidget(
         MaterialApp(
@@ -42,7 +44,7 @@ void main() {
           home: const DevicesScreen(),
         ),
       );
-      
+
       // Wait for scanning timeout
       await tester.pump(const Duration(seconds: 35));
       await tester.pumpAndSettle();

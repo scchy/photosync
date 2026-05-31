@@ -27,7 +27,8 @@ void main() async {
 class PhotoSyncApp extends StatefulWidget {
   final bool initialLoggedIn;
 
-  const PhotoSyncApp({Key? key, required this.initialLoggedIn}) : super(key: key);
+  const PhotoSyncApp({Key? key, required this.initialLoggedIn})
+      : super(key: key);
 
   @override
   State<PhotoSyncApp> createState() => _PhotoSyncAppState();
@@ -56,7 +57,9 @@ class _PhotoSyncAppState extends State<PhotoSyncApp> {
       title: 'PhotoSync',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: _isLoggedIn ? MainScreen(onLogout: _handleLogout) : AuthScreen(onLoginSuccess: _handleLoginSuccess),
+      home: _isLoggedIn
+          ? MainScreen(onLogout: _handleLogout)
+          : AuthScreen(onLoginSuccess: _handleLoginSuccess),
     );
   }
 }
@@ -194,7 +197,8 @@ class _MainScreenState extends State<MainScreen> {
 
       transferService.dispose();
 
-      print('AutoSync: completed, $successCount/${photosToSync.length} uploaded');
+      print(
+          'AutoSync: completed, $successCount/${photosToSync.length} uploaded');
 
       // 显示通知
       if (mounted && successCount > 0) {
@@ -227,9 +231,12 @@ class _MainScreenState extends State<MainScreen> {
         currentIndex: _currentIndex,
         onTap: (i) => setState(() => _currentIndex = i),
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.photo_library_outlined), label: '相册'),
-          BottomNavigationBarItem(icon: Icon(Icons.devices_outlined), label: '设备'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), label: '设置'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.photo_library_outlined), label: '相册'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.devices_outlined), label: '设备'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.settings_outlined), label: '设置'),
         ],
       ),
     );

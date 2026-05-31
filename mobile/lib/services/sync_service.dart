@@ -15,7 +15,8 @@ class SyncService {
 
   /// 获取所有照片（支持日期过滤）
   Future<List<AssetEntity>> getPhotosToSync() async {
-    final PermissionState permission = await PhotoManager.requestPermissionExtend();
+    final PermissionState permission =
+        await PhotoManager.requestPermissionExtend();
     if (!permission.isAuth) {
       return [];
     }

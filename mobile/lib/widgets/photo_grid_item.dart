@@ -56,7 +56,7 @@ class PhotoGridItem extends StatelessWidget {
               },
             ),
           ),
-          
+
           // 选择遮罩
           if (isSelectionMode)
             AnimatedContainer(
@@ -67,14 +67,13 @@ class PhotoGridItem extends StatelessWidget {
                     ? AppTheme.primaryColor.withOpacity(0.3)
                     : Colors.transparent,
                 border: Border.all(
-                  color: isSelected
-                      ? AppTheme.primaryColor
-                      : Colors.transparent,
+                  color:
+                      isSelected ? AppTheme.primaryColor : Colors.transparent,
                   width: 2,
                 ),
               ),
             ),
-          
+
           // 选择指示器
           if (isSelectionMode)
             Positioned(
@@ -90,9 +89,7 @@ class PhotoGridItem extends StatelessWidget {
                       ? AppTheme.primaryColor
                       : Colors.white.withOpacity(0.8),
                   border: Border.all(
-                    color: isSelected
-                        ? AppTheme.primaryColor
-                        : Colors.white,
+                    color: isSelected ? AppTheme.primaryColor : Colors.white,
                     width: 2,
                   ),
                 ),
@@ -105,7 +102,7 @@ class PhotoGridItem extends StatelessWidget {
                     : null,
               ),
             ),
-          
+
           // 视频标识
           if (photo.type == AssetType.video)
             Positioned(

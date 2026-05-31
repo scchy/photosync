@@ -25,7 +25,8 @@ class IncrementalSync {
   }
 
   /// 批量计算照片哈希
-  Future<Map<String, String>> calculateHashesForPhotos(List<Photo> photos) async {
+  Future<Map<String, String>> calculateHashesForPhotos(
+      List<Photo> photos) async {
     final hashes = <String, String>{};
 
     for (final photo in photos) {
@@ -58,7 +59,8 @@ class IncrementalSync {
   }
 
   /// 找出本地有但服务器没有的文件（需要同步的）
-  List<Photo> findMissingFiles(List<Photo> localPhotos, Set<String> serverHashes) {
+  List<Photo> findMissingFiles(
+      List<Photo> localPhotos, Set<String> serverHashes) {
     final missing = <Photo>[];
 
     for (final photo in localPhotos) {
@@ -89,7 +91,8 @@ class IncrementalSync {
     final totalSynced = totalLocal - totalMissing;
 
     // 计算需要同步的总大小
-    final totalBytesToSync = missingPhotos.fold<int>(0, (sum, photo) => sum + photo.size);
+    final totalBytesToSync =
+        missingPhotos.fold<int>(0, (sum, photo) => sum + photo.size);
 
     return SyncSummary(
       totalLocal: totalLocal,

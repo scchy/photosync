@@ -6,11 +6,13 @@ import 'package:photosync_common/services/auto_sync_manager.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  const connectivityChannel = MethodChannel('dev.fluttercommunity.plus/connectivity');
+  const connectivityChannel =
+      MethodChannel('dev.fluttercommunity.plus/connectivity');
 
   setUpAll(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(connectivityChannel, (MethodCall methodCall) async {
+        .setMockMethodCallHandler(connectivityChannel,
+            (MethodCall methodCall) async {
       if (methodCall.method == 'check') {
         return 'wifi';
       }
@@ -62,52 +64,62 @@ void main() {
       var networkChanged = false;
       autoSyncManager = AutoSyncManager(
         onSyncTrigger: () {},
-        onDeviceFound: () { networkChanged = true; },
+        onDeviceFound: () {
+          networkChanged = true;
+        },
       );
-      
+
       // Simulate network change
       await autoSyncManager.simulateNetworkChange(ConnectivityResult.wifi);
-      
+
       expect(networkChanged, true);
     });
 
-    test('should trigger sync when WiFi connected and auto sync enabled', () async {
+    test('should trigger sync when WiFi connected and auto sync enabled',
+        () async {
       var syncTriggered = false;
       autoSyncManager = AutoSyncManager(
-        onSyncTrigger: () { syncTriggered = true; },
+        onSyncTrigger: () {
+          syncTriggered = true;
+        },
         onDeviceFound: () {},
       );
-      
+
       autoSyncManager.setEnabled(true);
       await autoSyncManager.simulateNetworkChange(ConnectivityResult.wifi);
-      
+
       expect(syncTriggered, true);
     });
 
     test('should not trigger sync when auto sync disabled', () async {
       var syncTriggered = false;
       autoSyncManager = AutoSyncManager(
-        onSyncTrigger: () { syncTriggered = true; },
+        onSyncTrigger: () {
+          syncTriggered = true;
+        },
         onDeviceFound: () {},
       );
-      
+
       // auto sync is disabled by default
       await autoSyncManager.simulateNetworkChange(ConnectivityResult.wifi);
-      
+
       expect(syncTriggered, false);
     });
 
-    test('should not trigger sync on mobile data when wifiOnly is true', () async {
+    test('should not trigger sync on mobile data when wifiOnly is true',
+        () async {
       var syncTriggered = false;
       autoSyncManager = AutoSyncManager(
-        onSyncTrigger: () { syncTriggered = true; },
+        onSyncTrigger: () {
+          syncTriggered = true;
+        },
         onDeviceFound: () {},
       );
-      
+
       autoSyncManager.setEnabled(true);
       autoSyncManager.setSyncOnWifiOnly(true);
       await autoSyncManager.simulateNetworkChange(ConnectivityResult.mobile);
-      
+
       expect(syncTriggered, false);
     });
 
@@ -118,11 +130,13 @@ void main() {
 
     test('should add and remove sync listener', () {
       var listenerCalled = false;
-      void listener() { listenerCalled = true; }
-      
+      void listener() {
+        listenerCalled = true;
+      }
+
       autoSyncManager.addSyncListener(listener);
       expect(autoSyncManager.hasListeners, true);
-      
+
       autoSyncManager.removeSyncListener(listener);
       expect(autoSyncManager.hasListeners, false);
     });

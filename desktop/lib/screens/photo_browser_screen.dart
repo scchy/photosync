@@ -7,7 +7,8 @@ import 'package:photosync_desktop/theme/app_theme.dart';
 class PhotoBrowserScreen extends StatefulWidget {
   final DesktopServer desktopServer;
 
-  const PhotoBrowserScreen({Key? key, required this.desktopServer}) : super(key: key);
+  const PhotoBrowserScreen({Key? key, required this.desktopServer})
+      : super(key: key);
 
   @override
   State<PhotoBrowserScreen> createState() => _PhotoBrowserScreenState();
@@ -25,7 +26,8 @@ class _PhotoBrowserScreenState extends State<PhotoBrowserScreen> {
   void initState() {
     super.initState();
     _loadData();
-    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (_) => _loadData());
+    _refreshTimer =
+        Timer.periodic(const Duration(seconds: 5), (_) => _loadData());
   }
 
   @override
@@ -53,8 +55,12 @@ class _PhotoBrowserScreenState extends State<PhotoBrowserScreen> {
         title: const Text('确认删除'),
         content: const Text('确定要删除这张照片吗？此操作不可恢复。'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('删除')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('取消')),
+          ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('删除')),
         ],
       ),
     );
@@ -158,8 +164,16 @@ class _PhotoBrowserScreenState extends State<PhotoBrowserScreen> {
             children: [
               Icon(icon, color: AppTheme.primaryColor, size: 24),
               const SizedBox(height: 4),
-              Text(value, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-              Text(label, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondaryColor)),
+              Text(value,
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleLarge
+                      ?.copyWith(fontWeight: FontWeight.bold)),
+              Text(label,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: AppTheme.textSecondaryColor)),
             ],
           ),
         ),
@@ -189,11 +203,13 @@ class _PhotoBrowserScreenState extends State<PhotoBrowserScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.photo_library_outlined, size: 64, color: AppTheme.textLightColor),
+            Icon(Icons.photo_library_outlined,
+                size: 64, color: AppTheme.textLightColor),
             const SizedBox(height: AppTheme.spacingMD),
             Text('暂无照片', style: Theme.of(context).textTheme.displaySmall),
             const SizedBox(height: AppTheme.spacingSM),
-            Text('从手机端同步照片后会显示在这里', style: Theme.of(context).textTheme.bodyMedium),
+            Text('从手机端同步照片后会显示在这里',
+                style: Theme.of(context).textTheme.bodyMedium),
           ],
         ),
       );
@@ -240,7 +256,8 @@ class _PhotoBrowserScreenState extends State<PhotoBrowserScreen> {
   }
 
   Widget _buildGroupedByUser() {
-    final Map<String, Map<String, Map<String, List<Map<String, dynamic>>>>> grouped = {};
+    final Map<String, Map<String, Map<String, List<Map<String, dynamic>>>>>
+        grouped = {};
     for (final photo in _photos) {
       final user = photo['user'] as String? ?? '未知用户';
       final year = photo['year'] as String? ?? '未知';
@@ -264,11 +281,14 @@ class _PhotoBrowserScreenState extends State<PhotoBrowserScreen> {
           children: years.entries.map((yearEntry) {
             return ExpansionTile(
               key: ValueKey('user-year-$user-${yearEntry.key}'),
-              title: Text('${yearEntry.key}年 (${_countPhotos(yearEntry.value)}张)'),
+              title:
+                  Text('${yearEntry.key}年 (${_countPhotos(yearEntry.value)}张)'),
               children: yearEntry.value.entries.map((monthEntry) {
                 return ExpansionTile(
-                  key: ValueKey('user-month-$user-${yearEntry.key}-${monthEntry.key}'),
-                  title: Text('${monthEntry.key}月 (${monthEntry.value.length}张)'),
+                  key: ValueKey(
+                      'user-month-$user-${yearEntry.key}-${monthEntry.key}'),
+                  title:
+                      Text('${monthEntry.key}月 (${monthEntry.value.length}张)'),
                   children: [_buildPhotoGrid(monthEntry.value)],
                 );
               }).toList(),
@@ -310,7 +330,8 @@ class _PhotoBrowserScreenState extends State<PhotoBrowserScreen> {
                     child: Image.file(
                       File(filePath),
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _buildPhotoPlaceholder(photo, broken: true),
+                      errorBuilder: (_, __, ___) =>
+                          _buildPhotoPlaceholder(photo, broken: true),
                     ),
                   )
                 : _buildPhotoPlaceholder(photo, broken: true),
@@ -320,7 +341,8 @@ class _PhotoBrowserScreenState extends State<PhotoBrowserScreen> {
     );
   }
 
-  Widget _buildPhotoPlaceholder(Map<String, dynamic> photo, {bool broken = false}) {
+  Widget _buildPhotoPlaceholder(Map<String, dynamic> photo,
+      {bool broken = false}) {
     final filename = photo['filename'] as String? ?? '';
     return Center(
       child: Column(
@@ -408,15 +430,19 @@ class _PhotoBrowserScreenState extends State<PhotoBrowserScreen> {
       children: [
         Text('每日同步', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: AppTheme.spacingSM),
-        ...daily.take(7).map((d) => _buildStatsRow(d['date'] as String, d['count'] as int)),
+        ...daily
+            .take(7)
+            .map((d) => _buildStatsRow(d['date'] as String, d['count'] as int)),
         const Divider(height: 32),
         Text('每月同步', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: AppTheme.spacingSM),
-        ...monthly.take(6).map((m) => _buildStatsRow(m['month'] as String, m['count'] as int)),
+        ...monthly.take(6).map(
+            (m) => _buildStatsRow(m['month'] as String, m['count'] as int)),
         const Divider(height: 32),
         Text('每年同步', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: AppTheme.spacingSM),
-        ...yearly.map((y) => _buildStatsRow(y['year'] as String, y['count'] as int)),
+        ...yearly
+            .map((y) => _buildStatsRow(y['year'] as String, y['count'] as int)),
       ],
     );
   }
@@ -428,7 +454,11 @@ class _PhotoBrowserScreenState extends State<PhotoBrowserScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: Theme.of(context).textTheme.bodyMedium),
-          Text('$count 张', style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+          Text('$count 张',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(fontWeight: FontWeight.w600)),
         ],
       ),
     );
@@ -438,7 +468,8 @@ class _PhotoBrowserScreenState extends State<PhotoBrowserScreen> {
     return months.values.fold(0, (sum, photos) => sum + photos.length);
   }
 
-  int _countPhotosDeep(Map<String, Map<String, List<Map<String, dynamic>>>> years) {
+  int _countPhotosDeep(
+      Map<String, Map<String, List<Map<String, dynamic>>>> years) {
     return years.values.fold(0, (sum, months) => sum + _countPhotos(months));
   }
 
