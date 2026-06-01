@@ -1,12 +1,15 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:photosync_common/services/auth_service.dart';
 import 'package:photosync_common/services/auto_sync_manager.dart';
 import 'package:photosync_common/services/settings_service.dart';
 import 'package:photosync_common/services/device_storage_service.dart';
 import 'package:photosync_common/services/transfer_service.dart';
+import 'package:photosync_common/models/device.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'services/sync_service.dart';
 import 'screens/auth_screen.dart';
@@ -89,9 +92,99 @@ class _MainScreenState extends State<MainScreen> {
 
     _autoSyncManager = AutoSyncManager(
       onSyncTrigger: () => _performAutoSync(),
+      onDeviceFound: () => _attemptReconnectSavedDevices(),
     );
     _autoSyncManager.setSyncOnWifiOnly(settings.syncOnWifiOnly);
     _autoSyncManager.setEnabled(settings.autoSync);
+
+    // 应用启动时立即检查一次网络状态并尝试同步
+    // 因为 onConnectivityChanged 只在网络状态变化时触发
+    if (settings.autoSync) {
+      _checkAndTriggerAutoSyncOnLaunch();
+    }
+  }
+
+  /// 应用启动时主动检查网络并触发同步
+  Future<void> _checkAndTriggerAutoSyncOnLaunch() async {
+    try {
+      final result = await Connectivity().checkConnectivity();
+      final isWifi = result == ConnectivityResult.wifi;
+      final isMobile = result == ConnectivityResult.mobile;
+      final settings = SettingsService();
+      await settings.load();
+
+      final shouldSync = settings.syncOnWifiOnly
+          ? isWifi
+          : (isWifi || isMobile);
+
+      print('AutoSync: launch check - connectivity=$result, shouldSync=$shouldSync');
+
+      if (shouldSync) {
+        // 延迟几秒等待 UI 初始化完成
+        await Future.delayed(const Duration(seconds: 3));
+        if (mounted) {
+          _performAutoSync();
+        }
+      }
+    } catch (e) {
+      print('AutoSync: launch check failed: $e');
+    }
+  }
+
+  /// 当WiFi连接时，尝试重连保存的设备
+  Future<void> _attemptReconnectSavedDevices() async {
+    try {
+      final deviceStorage = DeviceStorageService();
+      final savedDevices = await deviceStorage.getSavedDevices();
+      if (savedDevices.isEmpty) return;
+
+      print('WiFi connected, attempting to reconnect ${savedDevices.length} saved devices');
+
+      for (final device in savedDevices) {
+        try {
+          final client = HttpClient();
+          client.connectionTimeout = const Duration(seconds: 5);
+          final req = await client.get(device.ip, device.port, '/api/health');
+          final resp = await req.close();
+          client.close();
+
+          if (resp.statusCode == 200) {
+            print('AutoReconnect: device ${device.name} at ${device.ip}:${device.port} is online');
+            // 设备在线，通知桌面端
+            final notifyClient = HttpClient();
+            notifyClient.connectionTimeout = const Duration(seconds: 5);
+            final authService = AuthService();
+            final user = await authService.loadUser();
+            final myDevice = Device(
+              id: user?.id ?? 'mobile_${DateTime.now().millisecondsSinceEpoch}',
+              name: '手机端 (${user?.username ?? '用户'})',
+              type: 'mobile',
+              ip: '',
+              port: 0,
+            );
+            final request = await notifyClient.post(
+                device.ip, device.port, '/api/device/connect');
+            request.headers.contentType = ContentType.json;
+            request.write(jsonEncode(myDevice.toJson()));
+            await request.close();
+            notifyClient.close();
+
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('已自动连接到 ${device.name}')),
+              );
+            }
+
+            // 只连接第一个可用的设备
+            break;
+          }
+        } catch (e) {
+          print('AutoReconnect: device ${device.name} unreachable: $e');
+        }
+      }
+    } catch (e) {
+      print('AutoReconnect failed: $e');
+    }
   }
 
   /// 执行自动同步

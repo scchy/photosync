@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -162,7 +163,12 @@ class _DeviceManagerScreenState extends State<DeviceManagerScreen> {
               const SizedBox(height: AppTheme.spacingLG),
               Center(
                 child: QrImageView(
-                  data: serverUrl,
+                  data: jsonEncode({
+                    'type': 'photosync_device',
+                    'ip': _localIp,
+                    'port': widget.desktopServer.port,
+                    'name': '桌面端',
+                  }),
                   version: QrVersions.auto,
                   size: 200,
                 ),

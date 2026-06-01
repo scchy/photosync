@@ -13,6 +13,7 @@ import 'package:crypto/crypto.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'package:photosync_common/models/device.dart';
+import 'storage_config_service.dart';
 
 /// 桌面端HTTP服务器
 class DesktopServer {
@@ -62,7 +63,8 @@ class DesktopServer {
 
   /// 初始化数据库
   Future<void> _initDatabase() async {
-    final dbPath = path.join('/media/scc/sccDisk/photosync', 'photos.db');
+    final storageRoot = await StorageConfigService.getStoragePath();
+    final dbPath = path.join(storageRoot, 'photos.db');
     Directory(path.dirname(dbPath)).createSync(recursive: true);
     _db = sqlite3.open(dbPath);
 
@@ -106,7 +108,8 @@ class DesktopServer {
 
   /// 初始化存储目录
   Future<void> _initStorage() async {
-    _storagePath = '/media/scc/sccDisk/photosync/photos';
+    final storageRoot = await StorageConfigService.getStoragePath();
+    _storagePath = path.join(storageRoot, 'photos');
     Directory(_storagePath).createSync(recursive: true);
   }
 
@@ -281,7 +284,7 @@ class DesktopServer {
               ? DateTime.fromMillisecondsSinceEpoch(lastSyncTime)
                   .toIso8601String()
               : null,
-          'storage_available': _getAvailableStorage(),
+          'storage_available': await _getAvailableStorage(),
         }),
         headers: {'Content-Type': 'application/json'});
   }
@@ -457,9 +460,9 @@ class DesktopServer {
         headers: {'Content-Type': 'application/json'});
   }
 
-  int _getAvailableStorage() {
+  Future<int> _getAvailableStorage() async {
     try {
-      return 1024 * 1024 * 1024 * 100;
+      return await StorageConfigService.getCurrentAvailableSpace();
     } catch (e) {
       return 0;
     }

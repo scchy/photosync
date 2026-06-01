@@ -3,6 +3,7 @@ import 'package:photosync_common/services/auth_service.dart';
 import 'package:photosync_common/services/settings_service.dart';
 import 'package:photosync_common/services/device_storage_service.dart';
 import 'package:photosync_common/models/device.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../theme/app_theme.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -27,6 +28,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _syncQuality = '原图';
   String? _username;
   List<Device> _savedDevices = [];
+  String _version = '1.0.0';
 
   final List<String> _qualityOptions = ['原图', '高质量', '中等质量'];
 
@@ -40,6 +42,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await _settingsService.load();
     final user = await _authService.loadUser();
     final devices = await _deviceStorage.getSavedDevices();
+    // 读取应用版本号
+    String version = '1.0.0';
+    try {
+      final packageInfo = await PackageInfo.fromPlatform();
+      version = '${packageInfo.version}+${packageInfo.buildNumber}';
+    } catch (e) {
+      print('读取版本号失败: $e');
+    }
+
     setState(() {
       _autoSync = _settingsService.autoSync;
       _syncOnWifi = _settingsService.syncOnWifiOnly;
@@ -48,6 +59,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _syncQuality = _settingsService.syncQuality;
       _username = user?.username;
       _savedDevices = devices;
+      _version = version;
       _isLoading = false;
     });
   }
@@ -186,7 +198,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 _buildInfoTile(
                   title: '版本',
-                  subtitle: '1.0.0',
+                  subtitle: _version,
                   icon: Icons.info_outline_rounded,
                 ),
                 _buildActionTile(

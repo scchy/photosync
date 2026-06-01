@@ -1,5 +1,5 @@
 name: photosync
-version: 1.0.0
+version: 1.1.1+4
 publish_to: none
 
 environment:
@@ -40,6 +40,8 @@ dependencies:
   permission_handler: ^11.1.0
   # 网络状态
   connectivity_plus: ^5.0.2
+  # 应用信息
+  package_info_plus: ^8.0.0
 
 dev_dependencies:
   flutter_test:

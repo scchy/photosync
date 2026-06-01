@@ -1,13 +1,19 @@
+import 'dart:developer';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:photo_manager/photo_manager.dart';
 import 'package:photosync_common/models/device.dart';
 import 'package:photosync_common/services/auth_service.dart';
 import 'package:photosync_common/services/transfer_service.dart';
 import 'package:photosync_common/services/device_storage_service.dart';
+import 'package:photosync_common/services/settings_service.dart';
 
+import '../services/sync_service.dart';
 import '../services/sync_stats_service.dart';
 import '../services/today_sync_service.dart';
 import '../theme/app_theme.dart';
@@ -282,6 +288,220 @@ class _GalleryScreenState extends State<GalleryScreen> {
     }
   }
 
+  Future<String?> _calculateAssetHash(AssetEntity photo) async {
+    try {
+      final file = await photo.originFile;
+      if (file == null) return null;
+      final bytes = await file.readAsBytes();
+      return sha256.convert(bytes).toString();
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// 同步当天照片
+  Future<void> _syncTodayPhotos() async {
+    try {
+      final settings = SettingsService();
+      await settings.load();
+
+      final syncService = SyncService(syncTodayOnly: settings.syncTodayOnly);
+      final checkResult = await syncService.checkPhotosToSync();
+      final photos = checkResult.photos;
+
+      if (photos.isEmpty) {
+        if (mounted) {
+          _showSyncEmptyDialog(checkResult.diagnostics,
+              permissionDenied: checkResult.permissionDenied);
+        }
+        return;
+      }
+
+    // 获取保存的设备
+    Device? device = await _loadLastDevice();
+    if (device == null) {
+      device = await _showDeviceInputDialog();
+    } else {
+      final useSaved = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('同步到设备'),
+          content: Text('使用已保存的设备?\n\nIP: ${device!.ip}\n端口: ${device.port}'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('更换'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('使用'),
+            ),
+          ],
+        ),
+      );
+      if (useSaved == null) return;
+      if (!useSaved) {
+        device = await _showDeviceInputDialog();
+      }
+    }
+
+    if (device == null) return;
+    await _saveLastDevice(device);
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('正在检查 ${photos.length} 张当天照片...')),
+    );
+
+    // 检查重复
+    final hashes = <String>[];
+    final hashToPhoto = <String, AssetEntity>{};
+    for (final photo in photos) {
+      final hash = await _calculateAssetHash(photo);
+      if (hash != null) {
+        hashes.add(hash);
+        hashToPhoto[hash] = photo;
+      }
+    }
+
+    final transferService = TransferService(device);
+    final missingHashes = await transferService.checkExistingFiles(hashes);
+    transferService.dispose();
+
+    final duplicateCount = hashes.length - missingHashes.length;
+    final photosToSync = missingHashes
+        .where((h) => hashToPhoto.containsKey(h))
+        .map((h) => hashToPhoto[h]!)
+        .toList();
+
+    if (photosToSync.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('当天的照片都已经同步过了')),
+        );
+      }
+      return;
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(duplicateCount > 0
+              ? '跳过 $duplicateCount 张重复，同步 ${photosToSync.length} 张...'
+              : '正在同步 ${photosToSync.length} 张当天照片...'),
+        ),
+      );
+    }
+
+    // 上传
+    await _uploadAssetPhotos(device, photosToSync);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(duplicateCount > 0
+                ? '同步完成! 上传 ${photosToSync.length} 张，跳过 $duplicateCount 张重复'
+                : '同步完成! 已上传 ${photosToSync.length} 张当天照片'),
+          ),
+        );
+        await _loadTodaySynced();
+        await _loadStats(forceRefresh: true);
+      }
+    } catch (e, st) {
+      log('Sync today photos error: $e', stackTrace: st);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('同步出错: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _uploadAssetPhotos(Device device, List<AssetEntity> photos) async {
+    final transferService = TransferService(device);
+    final authService = AuthService();
+    final user = await authService.loadUser();
+    for (final photo in photos) {
+      try {
+        final file = await photo.originFile;
+        if (file == null) continue;
+        final result = await transferService.uploadFile(
+          filePath: file.path,
+          filename: photo.title ?? 'photo.jpg',
+          createdAt: photo.createDateTime,
+          album: photo.relativePath,
+          userId: user?.username ?? user?.id,
+        );
+        if (result.success && mounted) {
+          final service = TodaySyncService();
+          await service.addSyncedPhoto(filename: photo.title ?? 'photo.jpg', path: file.path);
+        }
+      } catch (e) {
+        print('Upload error: $e');
+      }
+    }
+    transferService.dispose();
+  }
+
+  void _showSyncEmptyDialog(String diagnostics,
+      {bool permissionDenied = false}) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.info_outline, color: Colors.blue),
+            SizedBox(width: 8),
+            Text('同步诊断'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                permissionDenied ? '相册权限未开启' : '未找到可同步的当天照片',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              Text(diagnostics, style: const TextStyle(fontSize: 13)),
+              const SizedBox(height: 12),
+              const Text(
+                '提示:\n• 确保手机相册中有今天拍摄的照片\n• 部分照片可能因缺少拍摄时间信息无法识别\n• 请检查相册访问权限是否已开启\n• 刚拍的照片可能还未被系统索引，请等待几秒后重试',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('知道了'),
+          ),
+          if (permissionDenied)
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                await openAppSettings();
+              },
+              child: const Text('去设置开启'),
+            )
+          else
+            TextButton(
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: diagnostics));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('诊断信息已复制')),
+                );
+              },
+              child: const Text('复制信息'),
+            ),
+        ],
+      ),
+    );
+  }
+
   void _showSyncSheet(List<XFile> files, Device device, {int skipped = 0}) {
     showModalBottomSheet(
       context: context,
@@ -361,6 +581,26 @@ class _GalleryScreenState extends State<GalleryScreen> {
 
                   const SizedBox(height: AppTheme.spacingMD),
 
+                  // 同步当天照片按钮
+                  OutlinedButton.icon(
+                    onPressed: _syncTodayPhotos,
+                    icon: const Icon(Icons.today_rounded, size: 24),
+                    label: const Text(
+                      '同步当天照片',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: AppTheme.spacingLG),
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(AppTheme.mediumRadius),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: AppTheme.spacingMD),
+
                   // 辅助说明
                   Container(
                     padding: const EdgeInsets.all(AppTheme.spacingMD),
@@ -375,7 +615,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            '点击上方按钮调起手机系统相册，选择要同步的照片。支持多选。',
+                            '点击上方按钮调起手机系统相册选择照片，或点击"同步当天照片"自动同步今天拍摄的照片。',
                             style: TextStyle(
                               fontSize: 13,
                               color: Colors.blue.shade700,

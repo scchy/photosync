@@ -1,5 +1,9 @@
 import 'dart:convert';
+import 'dart:developer';
 import 'dart:io';
+
+import 'package:flutter/services.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
@@ -14,9 +18,11 @@ import 'package:photosync_common/services/settings_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../theme/app_theme.dart';
 import '../services/sync_service.dart';
+import 'qr_scan_screen.dart';
 
 class DevicesScreen extends StatefulWidget {
   const DevicesScreen({Key? key}) : super(key: key);
@@ -27,27 +33,44 @@ class DevicesScreen extends StatefulWidget {
 
 class _DevicesScreenState extends State<DevicesScreen> {
   final DiscoveryService _discoveryService = DiscoveryService();
-  List<Device> _devices = [];
+  final DeviceStorageService _deviceStorage = DeviceStorageService();
+  List<Device> _onlineDevices = [];
+  List<Device> _savedDevices = [];
   bool _isScanning = true;
+  bool _isReconnecting = false;
 
   @override
   void initState() {
     super.initState();
+    _loadSavedDevices();
     _startDiscovery();
+  }
+
+  /// 加载已保存的历史设备
+  Future<void> _loadSavedDevices() async {
+    final saved = await _deviceStorage.getSavedDevices();
+    setState(() {
+      _savedDevices = saved;
+    });
   }
 
   Future<void> _startDiscovery() async {
     _discoveryService.onDeviceFound = (device) {
       setState(() {
-        if (!_devices.any((d) => d.id == device.id)) {
-          _devices.add(device);
+        if (!_onlineDevices.any((d) => d.id == device.id)) {
+          _onlineDevices.add(device);
+        }
+        // 同步更新已保存设备中的在线状态
+        final savedIndex = _savedDevices.indexWhere((d) => d.id == device.id);
+        if (savedIndex >= 0) {
+          _savedDevices[savedIndex] = device;
         }
       });
     };
 
     _discoveryService.onDeviceLost = (device) {
       setState(() {
-        _devices.removeWhere((d) => d.id == device.id);
+        _onlineDevices.removeWhere((d) => d.id == device.id);
       });
     };
 
@@ -96,6 +119,15 @@ class _DevicesScreenState extends State<DevicesScreen> {
               ),
               keyboardType: TextInputType.number,
             ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.pop(context, false);
+                _scanQrCode();
+              },
+              icon: const Icon(Icons.qr_code_scanner),
+              label: const Text('扫一扫添加'),
+            ),
           ],
         ),
         actions: [
@@ -121,6 +153,23 @@ class _DevicesScreenState extends State<DevicesScreen> {
       return;
     }
 
+    await _connectToDevice(ip, port);
+  }
+
+  /// 扫描二维码添加设备
+  Future<void> _scanQrCode() async {
+    final device = await Navigator.push<Device>(
+      context,
+      MaterialPageRoute(builder: (_) => const QrScanScreen()),
+    );
+
+    if (device != null) {
+      await _connectToDevice(device.ip, device.port);
+    }
+  }
+
+  /// 连接指定 IP 和端口的设备
+  Future<void> _connectToDevice(String ip, int port) async {
     setState(() => _isScanning = true);
 
     try {
@@ -156,8 +205,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
           );
 
           setState(() {
-            if (!_devices.any((d) => d.id == device.id)) {
-              _devices.add(device);
+            if (!_onlineDevices.any((d) => d.id == device.id)) {
+              _onlineDevices.add(device);
             }
           });
 
@@ -188,9 +237,68 @@ class _DevicesScreenState extends State<DevicesScreen> {
     );
   }
 
+  void _showSyncEmptyDialog(String diagnostics,
+      {bool permissionDenied = false}) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.info_outline, color: Colors.blue),
+            SizedBox(width: 8),
+            Text('同步诊断'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                permissionDenied ? '相册权限未开启' : '未找到可同步的当天照片',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              Text(diagnostics, style: const TextStyle(fontSize: 13)),
+              const SizedBox(height: 12),
+              const Text(
+                '提示:\n• 确保手机相册中有今天拍摄的照片\n• 部分照片可能因缺少拍摄时间信息无法识别\n• 请检查相册访问权限是否已开启\n• 刚拍的照片可能还未被系统索引，请等待几秒后重试',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('知道了'),
+          ),
+          if (permissionDenied)
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                await openAppSettings();
+              },
+              child: const Text('去设置开启'),
+            )
+          else
+            TextButton(
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: diagnostics));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('诊断信息已复制')),
+                );
+              },
+              child: const Text('复制信息'),
+            ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _saveDeviceToPrefs(Device device) async {
-    final storage = DeviceStorageService();
-    await storage.addOrUpdateDevice(device);
+    await _deviceStorage.addOrUpdateDevice(device);
+    await _loadSavedDevices();
   }
 
   Future<void> _notifyDesktopConnected(Device desktopDevice) async {
@@ -325,6 +433,59 @@ class _DevicesScreenState extends State<DevicesScreen> {
     transferService.dispose();
   }
 
+  /// 重连历史设备
+  Future<void> _reconnectDevice(Device device) async {
+    setState(() => _isReconnecting = true);
+
+    try {
+      final httpClient = HttpClient();
+      httpClient.connectionTimeout = const Duration(seconds: 5);
+
+      final request = await httpClient.get(device.ip, device.port, '/api/health');
+      final response = await request.close();
+      final body = await response.transform(utf8.decoder).join();
+      httpClient.close();
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(body);
+        if (data['status'] == 'healthy') {
+          // 获取更多信息
+          final statusClient = HttpClient();
+          statusClient.connectionTimeout = const Duration(seconds: 5);
+          final statusReq =
+              await statusClient.get(device.ip, device.port, '/api/sync/status');
+          final statusResp = await statusReq.close();
+          final statusBody = await statusResp.transform(utf8.decoder).join();
+          statusClient.close();
+          final statusData = jsonDecode(statusBody);
+
+          final updatedDevice = device.copyWith(
+            storageAvailable: statusData['storage_available'] as int?,
+          );
+
+          setState(() {
+            if (!_onlineDevices.any((d) => d.id == updatedDevice.id)) {
+              _onlineDevices.add(updatedDevice);
+            }
+          });
+
+          await _saveDeviceToPrefs(updatedDevice);
+          await _notifyDesktopConnected(updatedDevice);
+
+          _showMessage('设备重连成功！');
+        }
+      } else {
+        _showMessage('重连失败: HTTP ${response.statusCode}');
+      }
+    } on SocketException catch (e) {
+      _showMessage('无法连接到 ${device.ip}:${device.port}，请检查设备是否在线');
+    } catch (e) {
+      _showMessage('重连失败: $e');
+    } finally {
+      setState(() => _isReconnecting = false);
+    }
+  }
+
   @override
   void dispose() {
     _discoveryService.stop();
@@ -334,31 +495,101 @@ class _DevicesScreenState extends State<DevicesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
+      body: Stack(
+        children: [
+          CustomScrollView(
+            slivers: [
           SliverToBoxAdapter(
             child: _buildHeader(),
           ),
-          if (_isScanning && _devices.isEmpty)
+          if (_isScanning && _onlineDevices.isEmpty && _savedDevices.isEmpty)
             SliverFillRemaining(
               child: _buildScanningState(),
             )
-          else if (_devices.isEmpty)
+          else if (_onlineDevices.isEmpty && _savedDevices.isEmpty)
             SliverFillRemaining(
               child: _buildEmptyState(),
             )
-          else
-            SliverPadding(
-              padding: const EdgeInsets.all(AppTheme.spacingMD),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) => _buildDeviceCard(_devices[index]),
-                  childCount: _devices.length,
+          else ...[
+            // 在线设备列表
+            if (_onlineDevices.isNotEmpty) ...[
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.only(
+                    left: AppTheme.spacingMD,
+                    right: AppTheme.spacingMD,
+                    top: AppTheme.spacingSM,
+                    bottom: AppTheme.spacingXS,
+                  ),
+                  child: Text(
+                    '在线设备',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          color: AppTheme.textSecondaryColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
                 ),
               ),
-            ),
+              SliverPadding(
+                padding: const EdgeInsets.all(AppTheme.spacingMD),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) => _buildDeviceCard(_onlineDevices[index], isOnline: true),
+                    childCount: _onlineDevices.length,
+                  ),
+                ),
+              ),
+            ],
+            // 历史/离线设备列表
+            if (_savedDevices.isNotEmpty) ...[
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.only(
+                    left: AppTheme.spacingMD,
+                    right: AppTheme.spacingMD,
+                    top: AppTheme.spacingSM,
+                    bottom: AppTheme.spacingXS,
+                  ),
+                  child: Text(
+                    '历史设备',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          color: AppTheme.textSecondaryColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.all(AppTheme.spacingMD),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final device = _savedDevices[index];
+                      final isOnline = _onlineDevices.any((d) => d.id == device.id);
+                      return _buildDeviceCard(device, isOnline: isOnline);
+                    },
+                    childCount: _savedDevices.length,
+                  ),
+                ),
+              ),
+            ],
+          ],
+          // 底部占位
+          const SliverToBoxAdapter(
+            child: SizedBox(height: 40),
+          ),
         ],
       ),
+      // 重连加载指示器
+      if (_isReconnecting)
+        Container(
+          color: Colors.black.withOpacity(0.3),
+          child: const Center(
+            child: CircularProgressIndicator(),
+          ),
+        ),
+    ],
+    ),
     );
   }
 
@@ -391,7 +622,9 @@ class _DevicesScreenState extends State<DevicesScreen> {
           ),
           const SizedBox(height: AppTheme.spacingXS),
           Text(
-            _isScanning ? '正在扫描局域网...' : '发现 ${_devices.length} 个设备',
+            _isScanning
+                    ? '正在扫描局域网...'
+                    : '发现 ${_onlineDevices.length} 个在线设备，${_savedDevices.length} 个历史设备',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: AppTheme.textSecondaryColor,
                 ),
@@ -482,7 +715,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
     );
   }
 
-  Widget _buildDeviceCard(Device device) {
+  Widget _buildDeviceCard(Device device, {required bool isOnline}) {
     return Container(
       margin: const EdgeInsets.only(bottom: AppTheme.spacingMD),
       decoration: BoxDecoration(
@@ -493,7 +726,9 @@ class _DevicesScreenState extends State<DevicesScreen> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () => _showDeviceOptions(device),
+          onTap: isOnline
+              ? () => _showDeviceOptions(device)
+              : () => _reconnectDevice(device),
           borderRadius: BorderRadius.circular(AppTheme.mediumRadius),
           child: Padding(
             padding: const EdgeInsets.all(AppTheme.spacingMD),
@@ -503,14 +738,16 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    color: AppTheme.primaryColor.withOpacity(0.1),
+                    color: isOnline
+                        ? AppTheme.primaryColor.withOpacity(0.1)
+                        : AppTheme.dividerColor.withOpacity(0.3),
                     borderRadius: BorderRadius.circular(AppTheme.smallRadius),
                   ),
                   child: Icon(
                     device.type == 'desktop'
                         ? Icons.computer_rounded
                         : Icons.smartphone_rounded,
-                    color: AppTheme.primaryColor,
+                    color: isOnline ? AppTheme.primaryColor : AppTheme.textLightColor,
                     size: 28,
                   ),
                 ),
@@ -524,6 +761,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                         style:
                             Theme.of(context).textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.w600,
+                                  color: isOnline ? null : AppTheme.textLightColor,
                                 ),
                       ),
                       const SizedBox(height: AppTheme.spacingXS),
@@ -533,12 +771,21 @@ class _DevicesScreenState extends State<DevicesScreen> {
                               color: AppTheme.textSecondaryColor,
                             ),
                       ),
-                      if (device.storageAvailable != null)
+                      if (device.storageAvailable != null && isOnline)
                         Text(
                           '可用空间: ${_formatBytes(device.storageAvailable!)}',
                           style:
                               Theme.of(context).textTheme.bodySmall?.copyWith(
                                     color: AppTheme.successColor,
+                                  ),
+                        ),
+                      if (!isOnline)
+                        Text(
+                          '点击重连',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: AppTheme.primaryColor,
+                                    fontWeight: FontWeight.w600,
                                   ),
                         ),
                     ],
@@ -550,7 +797,9 @@ class _DevicesScreenState extends State<DevicesScreen> {
                     vertical: AppTheme.spacingSM,
                   ),
                   decoration: BoxDecoration(
-                    color: AppTheme.successColor.withOpacity(0.1),
+                    color: isOnline
+                        ? AppTheme.successColor.withOpacity(0.1)
+                        : AppTheme.textLightColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(AppTheme.smallRadius),
                   ),
                   child: Row(
@@ -559,16 +808,20 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       Container(
                         width: 8,
                         height: 8,
-                        decoration: const BoxDecoration(
-                          color: AppTheme.successColor,
+                        decoration: BoxDecoration(
+                          color: isOnline
+                              ? AppTheme.successColor
+                              : AppTheme.textLightColor,
                           shape: BoxShape.circle,
                         ),
                       ),
                       const SizedBox(width: AppTheme.spacingXS),
                       Text(
-                        '在线',
+                        isOnline ? '在线' : '离线',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppTheme.successColor,
+                              color: isOnline
+                                  ? AppTheme.successColor
+                                  : AppTheme.textLightColor,
                               fontWeight: FontWeight.w600,
                             ),
                       ),
@@ -628,70 +881,77 @@ class _DevicesScreenState extends State<DevicesScreen> {
               title: '立即同步',
               subtitle: '同步当天拍摄的照片',
               onTap: () async {
-                Navigator.pop(context);
-                final settings = SettingsService();
-                await settings.load();
-                final syncService =
-                    SyncService(syncTodayOnly: settings.syncTodayOnly);
-                final photos = await syncService.getPhotosToSync();
+                try {
+                  Navigator.pop(context);
+                  final settings = SettingsService();
+                  await settings.load();
+                  final syncService =
+                      SyncService(syncTodayOnly: settings.syncTodayOnly);
+                  final checkResult = await syncService.checkPhotosToSync();
+                  final photos = checkResult.photos;
 
-                if (photos.isEmpty) {
+                  if (photos.isEmpty) {
+                    if (context.mounted) {
+                      _showSyncEmptyDialog(checkResult.diagnostics);
+                    }
+                    return;
+                  }
+
+                  // 自动同步：检查重复并跳过
                   if (context.mounted) {
-                    _showMessage('今天没有新照片');
+                    _showMessage('正在检查 ${photos.length} 张当天照片...');
                   }
-                  return;
-                }
 
-                // 自动同步：检查重复并跳过
-                if (context.mounted) {
-                  _showMessage('正在检查 ${photos.length} 张当天照片...');
-                }
-
-                final hashes = <String>[];
-                final hashToPhoto = <String, AssetEntity>{};
-                for (final photo in photos) {
-                  final hash = await _calculatePhotoHash(photo);
-                  if (hash != null) {
-                    hashes.add(hash);
-                    hashToPhoto[hash] = photo;
+                  final hashes = <String>[];
+                  final hashToPhoto = <String, AssetEntity>{};
+                  for (final photo in photos) {
+                    final hash = await _calculatePhotoHash(photo);
+                    if (hash != null) {
+                      hashes.add(hash);
+                      hashToPhoto[hash] = photo;
+                    }
                   }
-                }
 
-                final transferService = TransferService(device);
-                final missingHashes =
-                    await transferService.checkExistingFiles(hashes);
-                transferService.dispose();
+                  final transferService = TransferService(device);
+                  final missingHashes =
+                      await transferService.checkExistingFiles(hashes);
+                  transferService.dispose();
 
-                final duplicateCount = hashes.length - missingHashes.length;
-                final photosToSync = missingHashes
-                    .where((h) => hashToPhoto.containsKey(h))
-                    .map((h) => hashToPhoto[h]!)
-                    .toList();
+                  final duplicateCount = hashes.length - missingHashes.length;
+                  final photosToSync = missingHashes
+                      .where((h) => hashToPhoto.containsKey(h))
+                      .map((h) => hashToPhoto[h]!)
+                      .toList();
 
-                if (photosToSync.isEmpty) {
+                  if (photosToSync.isEmpty) {
+                    if (context.mounted) {
+                      _showMessage('当天的照片都已经同步过了');
+                    }
+                    return;
+                  }
+
                   if (context.mounted) {
-                    _showMessage('当天的照片都已经同步过了');
+                    _showMessage(
+                      duplicateCount > 0
+                          ? '跳过 $duplicateCount 张重复，正在同步 ${photosToSync.length} 张新照片...'
+                          : '正在同步 ${photosToSync.length} 张当天照片...',
+                    );
                   }
-                  return;
-                }
 
-                if (context.mounted) {
-                  _showMessage(
-                    duplicateCount > 0
-                        ? '跳过 $duplicateCount 张重复，正在同步 ${photosToSync.length} 张新照片...'
-                        : '正在同步 ${photosToSync.length} 张当天照片...',
-                  );
-                }
+                  // 实际上传
+                  await _uploadPhotos(device, photosToSync);
 
-                // 实际上传
-                await _uploadPhotos(device, photosToSync);
-
-                if (context.mounted) {
-                  _showMessage(
-                    duplicateCount > 0
-                        ? '同步完成！上传 ${photosToSync.length} 张，跳过 $duplicateCount 张重复'
-                        : '同步完成！已上传 ${photosToSync.length} 张当天照片',
-                  );
+                  if (context.mounted) {
+                    _showMessage(
+                      duplicateCount > 0
+                          ? '同步完成！上传 ${photosToSync.length} 张，跳过 $duplicateCount 张重复'
+                          : '同步完成！已上传 ${photosToSync.length} 张当天照片',
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    _showMessage('同步出错: $e');
+                  }
                 }
               },
             ),
