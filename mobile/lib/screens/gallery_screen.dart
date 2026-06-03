@@ -60,11 +60,20 @@ class _GalleryScreenState extends State<GalleryScreen> {
   }
 
   Future<void> _pickFromSystemGallery() async {
-    final List<XFile> picked = await _picker.pickMultiImage();
-    if (picked.isEmpty) return;
+    try {
+      final List<XFile> picked = await _picker.pickMultiImage();
+      if (picked.isEmpty) return;
 
-    setState(() => _selectedFiles = picked);
-    await _startSyncFlow(picked);
+      setState(() => _selectedFiles = picked);
+      await _startSyncFlow(picked);
+    } catch (e, st) {
+      log('Pick from gallery error: $e', stackTrace: st);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('打开相册失败: $e')),
+        );
+      }
+    }
   }
 
   /// 读取上次保存的设备
@@ -218,7 +227,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
 
   Future<Device?> _showDeviceInputDialog() async {
     final ipCtrl = TextEditingController(text: '192.168.31.174');
-    final portCtrl = TextEditingController(text: '45043');
+    final portCtrl = TextEditingController(text: '46343');
 
     final result = await showDialog<bool>(
       context: context,
@@ -418,12 +427,15 @@ class _GalleryScreenState extends State<GalleryScreen> {
   }
 
   Future<void> _uploadAssetPhotos(
-      Device device, List<AssetEntity> photos) async {
+      Device device, List<AssetEntity> photos,
+      {void Function(int current, int total, String filename)? onProgress}) async {
     final transferService = TransferService(device);
     final authService = AuthService();
     final user = await authService.loadUser();
-    for (final photo in photos) {
+    for (int i = 0; i < photos.length; i++) {
+      final photo = photos[i];
       try {
+        onProgress?.call(i, photos.length, photo.title ?? 'photo.jpg');
         final file = await photo.originFile;
         if (file == null) continue;
         final result = await transferService.uploadFile(
@@ -437,9 +449,18 @@ class _GalleryScreenState extends State<GalleryScreen> {
           final service = TodaySyncService();
           await service.addSyncedPhoto(
               filename: photo.title ?? 'photo.jpg', path: file.path);
+        } else if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('上传失败: ${result.error}')),
+          );
         }
       } catch (e) {
-        print('Upload error: $e');
+        log('Upload error: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('上传 ${photo.title} 失败: $e')),
+          );
+        }
       }
     }
     transferService.dispose();

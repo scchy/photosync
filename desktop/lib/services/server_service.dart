@@ -100,19 +100,23 @@ class DesktopServer {
   // 内部辅助：照片扫描
   // ------------------------------------------------------------------
 
-  Future<List<Map<String, dynamic>>> _scanAllPhotos({String? userIdFilter}) async {
+  Future<List<Map<String, dynamic>>> _scanAllPhotos(
+      {String? userIdFilter}) async {
     final photos = <Map<String, dynamic>>[];
     final rootDir = Directory(_storagePath);
     if (!await rootDir.exists()) return photos;
 
-    await for (final entity in rootDir.list(recursive: true, followLinks: false)) {
+    await for (final entity
+        in rootDir.list(recursive: true, followLinks: false)) {
       if (entity is! File) continue;
       final rel = _relativePathFromAbsolute(entity.path);
       final parts = rel.split('/');
       if (parts.length < 4) continue; // userId/year/month/filename
 
       final fileUserId = parts[0];
-      if (userIdFilter != null && userIdFilter.isNotEmpty && fileUserId != userIdFilter) {
+      if (userIdFilter != null &&
+          userIdFilter.isNotEmpty &&
+          fileUserId != userIdFilter) {
         continue;
       }
 
@@ -123,9 +127,15 @@ class DesktopServer {
         'filename': path.basename(entity.path),
         'path': entity.path,
         'size': stat.size,
-        'created_at': DateTime.fromMillisecondsSinceEpoch(stat.modified.millisecondsSinceEpoch).toIso8601String(),
-        'modified_at': DateTime.fromMillisecondsSinceEpoch(stat.modified.millisecondsSinceEpoch).toIso8601String(),
-        'album': parts.length > 4 ? parts.sublist(3, parts.length - 1).join('/') : null,
+        'created_at': DateTime.fromMillisecondsSinceEpoch(
+                stat.modified.millisecondsSinceEpoch)
+            .toIso8601String(),
+        'modified_at': DateTime.fromMillisecondsSinceEpoch(
+                stat.modified.millisecondsSinceEpoch)
+            .toIso8601String(),
+        'album': parts.length > 4
+            ? parts.sublist(3, parts.length - 1).join('/')
+            : null,
         'user_id': fileUserId,
         'year': parts[1],
         'month': parts[2],
@@ -134,7 +144,8 @@ class DesktopServer {
       });
     }
 
-    photos.sort((a, b) => (b['mtime'] as DateTime).compareTo(a['mtime'] as DateTime));
+    photos.sort(
+        (a, b) => (b['mtime'] as DateTime).compareTo(a['mtime'] as DateTime));
     return photos;
   }
 
@@ -168,7 +179,8 @@ class DesktopServer {
 
   String _todayLogFilePath() {
     final now = DateTime.now();
-    final ymd = '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
+    final ymd =
+        '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
     return path.join(_rootStoragePath, 'logs', 'sync_$ymd.jsonl');
   }
 
@@ -274,12 +286,14 @@ class DesktopServer {
       if (hashes.containsKey(hash)) {
         final existingRel = hashes[hash]!;
         final existingId = _makeId(existingRel);
-        final existingPath = path.join(_storagePath, existingRel.replaceAll('/', path.separator));
+        final existingPath = path.join(
+            _storagePath, existingRel.replaceAll('/', path.separator));
         _addSyncLog(
           type: 'upload',
           status: 'skipped',
           message: '重复照片跳过: $filename',
-          details: '大小: ${_formatBytes(fileData.length)}, 来自: ${userId ?? '未知'}',
+          details:
+              '大小: ${_formatBytes(fileData.length)}, 来自: ${userId ?? '未知'}',
           deviceName: userId,
           photoCount: 0,
           totalSize: 0,
@@ -314,8 +328,7 @@ class DesktopServer {
         type: 'upload',
         status: 'success',
         message: '接收照片: $filename',
-        details:
-            '大小: ${_formatBytes(fileData.length)}, 来自: ${userId ?? '未知'}',
+        details: '大小: ${_formatBytes(fileData.length)}, 来自: ${userId ?? '未知'}',
         deviceName: userId,
         photoCount: 1,
         totalSize: fileData.length,
@@ -441,7 +454,8 @@ class DesktopServer {
     final page = int.tryParse(request.url.queryParameters['page'] ?? '0') ?? 0;
     final limit =
         int.tryParse(request.url.queryParameters['limit'] ?? '50') ?? 50;
-    final userId = request.url.queryParameters['device_id'] ?? request.url.queryParameters['user_id'];
+    final userId = request.url.queryParameters['device_id'] ??
+        request.url.queryParameters['user_id'];
 
     final allPhotos = await _scanAllPhotos(userIdFilter: userId);
     final start = page * limit;
@@ -566,9 +580,9 @@ class DesktopServer {
           if (status != null && status != 'all' && entry['status'] != status) {
             continue;
           }
-          entry['timestamp'] = DateTime.fromMillisecondsSinceEpoch(
-                  entry['timestamp'] as int)
-              .toIso8601String();
+          entry['timestamp'] =
+              DateTime.fromMillisecondsSinceEpoch(entry['timestamp'] as int)
+                  .toIso8601String();
           allLogs.add(entry);
           if (allLogs.length >= limit) break;
         } catch (_) {
@@ -594,7 +608,8 @@ class DesktopServer {
   /// 公共方法：获取日志统计摘要
   Future<Map<String, dynamic>> getSyncLogSummary() async {
     final now = DateTime.now();
-    final todayStart = DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
+    final todayStart =
+        DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
 
     final logsDir = Directory(path.join(_rootStoragePath, 'logs'));
     if (!await logsDir.exists()) {
@@ -680,8 +695,10 @@ class DesktopServer {
 
     for (final p in photos) {
       final mtime = p['mtime'] as DateTime;
-      final dayKey = '${mtime.year}-${mtime.month.toString().padLeft(2, '0')}-${mtime.day.toString().padLeft(2, '0')}';
-      final monthKey = '${mtime.year}-${mtime.month.toString().padLeft(2, '0')}';
+      final dayKey =
+          '${mtime.year}-${mtime.month.toString().padLeft(2, '0')}-${mtime.day.toString().padLeft(2, '0')}';
+      final monthKey =
+          '${mtime.year}-${mtime.month.toString().padLeft(2, '0')}';
       final yearKey = '${mtime.year}';
 
       dailyMap[dayKey] = (dailyMap[dayKey] ?? 0) + 1;
@@ -689,30 +706,23 @@ class DesktopServer {
       yearlyMap[yearKey] = (yearlyMap[yearKey] ?? 0) + 1;
     }
 
-    final daily = dailyMap.entries
-        .toList()
+    final daily = dailyMap.entries.toList()
       ..sort((a, b) => b.key.compareTo(a.key));
-    final monthly = monthlyMap.entries
-        .toList()
+    final monthly = monthlyMap.entries.toList()
       ..sort((a, b) => b.key.compareTo(a.key));
-    final yearly = yearlyMap.entries
-        .toList()
+    final yearly = yearlyMap.entries.toList()
       ..sort((a, b) => b.key.compareTo(a.key));
 
     return {
       'total': total,
-      'daily': daily
-          .take(30)
-          .map((e) => {'date': e.key, 'count': e.value})
-          .toList(),
+      'daily':
+          daily.take(30).map((e) => {'date': e.key, 'count': e.value}).toList(),
       'monthly': monthly
           .take(12)
           .map((e) => {'month': e.key, 'count': e.value})
           .toList(),
-      'yearly': yearly
-          .take(5)
-          .map((e) => {'year': e.key, 'count': e.value})
-          .toList(),
+      'yearly':
+          yearly.take(5).map((e) => {'year': e.key, 'count': e.value}).toList(),
     };
   }
 
