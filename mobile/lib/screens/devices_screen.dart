@@ -441,7 +441,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
       final httpClient = HttpClient();
       httpClient.connectionTimeout = const Duration(seconds: 5);
 
-      final request = await httpClient.get(device.ip, device.port, '/api/health');
+      final request =
+          await httpClient.get(device.ip, device.port, '/api/health');
       final response = await request.close();
       final body = await response.transform(utf8.decoder).join();
       httpClient.close();
@@ -452,8 +453,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
           // 获取更多信息
           final statusClient = HttpClient();
           statusClient.connectionTimeout = const Duration(seconds: 5);
-          final statusReq =
-              await statusClient.get(device.ip, device.port, '/api/sync/status');
+          final statusReq = await statusClient.get(
+              device.ip, device.port, '/api/sync/status');
           final statusResp = await statusReq.close();
           final statusBody = await statusResp.transform(utf8.decoder).join();
           statusClient.close();
@@ -499,97 +500,102 @@ class _DevicesScreenState extends State<DevicesScreen> {
         children: [
           CustomScrollView(
             slivers: [
-          SliverToBoxAdapter(
-            child: _buildHeader(),
-          ),
-          if (_isScanning && _onlineDevices.isEmpty && _savedDevices.isEmpty)
-            SliverFillRemaining(
-              child: _buildScanningState(),
-            )
-          else if (_onlineDevices.isEmpty && _savedDevices.isEmpty)
-            SliverFillRemaining(
-              child: _buildEmptyState(),
-            )
-          else ...[
-            // 在线设备列表
-            if (_onlineDevices.isNotEmpty) ...[
               SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.only(
-                    left: AppTheme.spacingMD,
-                    right: AppTheme.spacingMD,
-                    top: AppTheme.spacingSM,
-                    bottom: AppTheme.spacingXS,
-                  ),
-                  child: Text(
-                    '在线设备',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: AppTheme.textSecondaryColor,
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                ),
+                child: _buildHeader(),
               ),
-              SliverPadding(
-                padding: const EdgeInsets.all(AppTheme.spacingMD),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) => _buildDeviceCard(_onlineDevices[index], isOnline: true),
-                    childCount: _onlineDevices.length,
+              if (_isScanning &&
+                  _onlineDevices.isEmpty &&
+                  _savedDevices.isEmpty)
+                SliverFillRemaining(
+                  child: _buildScanningState(),
+                )
+              else if (_onlineDevices.isEmpty && _savedDevices.isEmpty)
+                SliverFillRemaining(
+                  child: _buildEmptyState(),
+                )
+              else ...[
+                // 在线设备列表
+                if (_onlineDevices.isNotEmpty) ...[
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.only(
+                        left: AppTheme.spacingMD,
+                        right: AppTheme.spacingMD,
+                        top: AppTheme.spacingSM,
+                        bottom: AppTheme.spacingXS,
+                      ),
+                      child: Text(
+                        '在线设备',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              color: AppTheme.textSecondaryColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ),
                   ),
-                ),
+                  SliverPadding(
+                    padding: const EdgeInsets.all(AppTheme.spacingMD),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) => _buildDeviceCard(
+                            _onlineDevices[index],
+                            isOnline: true),
+                        childCount: _onlineDevices.length,
+                      ),
+                    ),
+                  ),
+                ],
+                // 历史/离线设备列表
+                if (_savedDevices.isNotEmpty) ...[
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.only(
+                        left: AppTheme.spacingMD,
+                        right: AppTheme.spacingMD,
+                        top: AppTheme.spacingSM,
+                        bottom: AppTheme.spacingXS,
+                      ),
+                      child: Text(
+                        '历史设备',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              color: AppTheme.textSecondaryColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ),
+                  ),
+                  SliverPadding(
+                    padding: const EdgeInsets.all(AppTheme.spacingMD),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final device = _savedDevices[index];
+                          final isOnline =
+                              _onlineDevices.any((d) => d.id == device.id);
+                          return _buildDeviceCard(device, isOnline: isOnline);
+                        },
+                        childCount: _savedDevices.length,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+              // 底部占位
+              const SliverToBoxAdapter(
+                child: SizedBox(height: 40),
               ),
             ],
-            // 历史/离线设备列表
-            if (_savedDevices.isNotEmpty) ...[
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.only(
-                    left: AppTheme.spacingMD,
-                    right: AppTheme.spacingMD,
-                    top: AppTheme.spacingSM,
-                    bottom: AppTheme.spacingXS,
-                  ),
-                  child: Text(
-                    '历史设备',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: AppTheme.textSecondaryColor,
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                ),
-              ),
-              SliverPadding(
-                padding: const EdgeInsets.all(AppTheme.spacingMD),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final device = _savedDevices[index];
-                      final isOnline = _onlineDevices.any((d) => d.id == device.id);
-                      return _buildDeviceCard(device, isOnline: isOnline);
-                    },
-                    childCount: _savedDevices.length,
-                  ),
-                ),
-              ),
-            ],
-          ],
-          // 底部占位
-          const SliverToBoxAdapter(
-            child: SizedBox(height: 40),
           ),
+          // 重连加载指示器
+          if (_isReconnecting)
+            Container(
+              color: Colors.black.withValues(alpha: 0.3),
+              child: const Center(
+                child: CircularProgressIndicator(),
+              ),
+            ),
         ],
       ),
-      // 重连加载指示器
-      if (_isReconnecting)
-        Container(
-          color: Colors.black.withOpacity(0.3),
-          child: const Center(
-            child: CircularProgressIndicator(),
-          ),
-        ),
-    ],
-    ),
     );
   }
 
@@ -623,8 +629,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
           const SizedBox(height: AppTheme.spacingXS),
           Text(
             _isScanning
-                    ? '正在扫描局域网...'
-                    : '发现 ${_onlineDevices.length} 个在线设备，${_savedDevices.length} 个历史设备',
+                ? '正在扫描局域网...'
+                : '发现 ${_onlineDevices.length} 个在线设备，${_savedDevices.length} 个历史设备',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: AppTheme.textSecondaryColor,
                 ),
@@ -673,7 +679,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
           Container(
             padding: const EdgeInsets.all(AppTheme.spacingXL),
             decoration: BoxDecoration(
-              color: AppTheme.dividerColor.withOpacity(0.3),
+              color: AppTheme.dividerColor.withValues(alpha: 0.3),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -739,15 +745,17 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   height: 56,
                   decoration: BoxDecoration(
                     color: isOnline
-                        ? AppTheme.primaryColor.withOpacity(0.1)
-                        : AppTheme.dividerColor.withOpacity(0.3),
+                        ? AppTheme.primaryColor.withValues(alpha: 0.1)
+                        : AppTheme.dividerColor.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(AppTheme.smallRadius),
                   ),
                   child: Icon(
                     device.type == 'desktop'
                         ? Icons.computer_rounded
                         : Icons.smartphone_rounded,
-                    color: isOnline ? AppTheme.primaryColor : AppTheme.textLightColor,
+                    color: isOnline
+                        ? AppTheme.primaryColor
+                        : AppTheme.textLightColor,
                     size: 28,
                   ),
                 ),
@@ -758,11 +766,13 @@ class _DevicesScreenState extends State<DevicesScreen> {
                     children: [
                       Text(
                         device.name,
-                        style:
-                            Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: isOnline ? null : AppTheme.textLightColor,
-                                ),
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: isOnline ? null : AppTheme.textLightColor,
+                            ),
                       ),
                       const SizedBox(height: AppTheme.spacingXS),
                       Text(
@@ -798,8 +808,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   ),
                   decoration: BoxDecoration(
                     color: isOnline
-                        ? AppTheme.successColor.withOpacity(0.1)
-                        : AppTheme.textLightColor.withOpacity(0.1),
+                        ? AppTheme.successColor.withValues(alpha: 0.1)
+                        : AppTheme.textLightColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(AppTheme.smallRadius),
                   ),
                   child: Row(
@@ -1001,7 +1011,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
       leading: Container(
         padding: const EdgeInsets.all(AppTheme.spacingSM),
         decoration: BoxDecoration(
-          color: AppTheme.primaryColor.withOpacity(0.1),
+          color: AppTheme.primaryColor.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(AppTheme.smallRadius),
         ),
         child: Icon(icon, color: AppTheme.primaryColor),

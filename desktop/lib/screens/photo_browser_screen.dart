@@ -322,7 +322,7 @@ class _PhotoBrowserScreenState extends State<PhotoBrowserScreen> {
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppTheme.smallRadius),
-              color: AppTheme.dividerColor.withOpacity(0.3),
+              color: AppTheme.dividerColor.withValues(alpha: 0.3),
             ),
             child: exists
                 ? ClipRRect(

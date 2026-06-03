@@ -123,7 +123,8 @@ class _QrScanScreenState extends State<QrScanScreen> {
       }
     } else if (mounted) {
       setState(() {
-        _status = '无法识别: ${errorMsg ?? "格式不支持"}\n原始内容: ${raw.substring(0, raw.length > 50 ? 50 : raw.length)}...';
+        _status =
+            '无法识别: ${errorMsg ?? "格式不支持"}\n原始内容: ${raw.substring(0, raw.length > 50 ? 50 : raw.length)}...';
       });
       // 2秒后恢复扫描状态
       await Future.delayed(const Duration(seconds: 2));

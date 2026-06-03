@@ -113,11 +113,11 @@ class _MainScreenState extends State<MainScreen> {
       final settings = SettingsService();
       await settings.load();
 
-      final shouldSync = settings.syncOnWifiOnly
-          ? isWifi
-          : (isWifi || isMobile);
+      final shouldSync =
+          settings.syncOnWifiOnly ? isWifi : (isWifi || isMobile);
 
-      print('AutoSync: launch check - connectivity=$result, shouldSync=$shouldSync');
+      print(
+          'AutoSync: launch check - connectivity=$result, shouldSync=$shouldSync');
 
       if (shouldSync) {
         // 延迟几秒等待 UI 初始化完成
@@ -138,7 +138,8 @@ class _MainScreenState extends State<MainScreen> {
       final savedDevices = await deviceStorage.getSavedDevices();
       if (savedDevices.isEmpty) return;
 
-      print('WiFi connected, attempting to reconnect ${savedDevices.length} saved devices');
+      print(
+          'WiFi connected, attempting to reconnect ${savedDevices.length} saved devices');
 
       for (final device in savedDevices) {
         try {
@@ -149,7 +150,8 @@ class _MainScreenState extends State<MainScreen> {
           client.close();
 
           if (resp.statusCode == 200) {
-            print('AutoReconnect: device ${device.name} at ${device.ip}:${device.port} is online');
+            print(
+                'AutoReconnect: device ${device.name} at ${device.ip}:${device.port} is online');
             // 设备在线，通知桌面端
             final notifyClient = HttpClient();
             notifyClient.connectionTimeout = const Duration(seconds: 5);

@@ -300,7 +300,7 @@ class _SyncLogScreenState extends State<SyncLogScreen> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.1),
+                color: iconColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(AppTheme.smallRadius),
               ),
               child: Icon(iconData, color: iconColor, size: 20),
@@ -382,7 +382,8 @@ class _SyncLogScreenState extends State<SyncLogScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: (colors[type] ?? AppTheme.textSecondaryColor).withOpacity(0.1),
+        color: (colors[type] ?? AppTheme.textSecondaryColor)
+            .withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(

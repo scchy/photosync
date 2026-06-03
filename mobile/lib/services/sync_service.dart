@@ -45,12 +45,11 @@ class SyncService {
     try {
       // 使用 photo_manager 请求权限
       log('SyncService: requesting photo permission...');
-      PermissionState pmState =
-          await PhotoManager.requestPermissionExtend();
+      PermissionState pmState = await PhotoManager.requestPermissionExtend();
       log('SyncService: photo_manager state = $pmState, isAuth = ${pmState.isAuth}');
-      buffer.writeln('相册权限状态: $pmState');
+      buffer.writeln('相册权限状态(1): $pmState');
 
-      // 如果权限被拒绝，尝试用 permission_handler 再次请求
+      // 如果权限被拒绝，尝试用 permission_handler 请求后再检查
       if (!pmState.isAuth) {
         log('SyncService: photo_manager denied, trying permission_handler...');
         final phStatus = await Permission.photos.request();
@@ -58,30 +57,27 @@ class SyncService {
         buffer.writeln('permission_handler 状态: $phStatus');
 
         if (phStatus.isGranted) {
-          // permission_handler 显示已授权，但 photo_manager 仍拒绝
-          // 可能是需要重启应用才能生效
-          buffer.writeln('\n⚠️ 检测到权限状态不一致');
-          buffer.writeln('系统设置显示已授权，但 photo_manager 仍返回拒绝。');
-          buffer.writeln('请尝试完全关闭 App 后重新打开，再点击同步。');
-          return SyncCheckResult([], buffer.toString(),
-              permissionDenied: true);
+          // permission_handler 成功，再次用 photo_manager 检查
+          // 延迟一小段时间，让系统权限状态同步
+          await Future.delayed(const Duration(milliseconds: 300));
+          pmState = await PhotoManager.requestPermissionExtend();
+          log('SyncService: photo_manager recheck state = $pmState, isAuth = ${pmState.isAuth}');
+          buffer.writeln('相册权限状态(2): $pmState');
         }
+      }
 
+      if (!pmState.isAuth) {
         buffer.writeln('\n⚠️ 相册访问权限未开启');
-        buffer.writeln(
-            '注意：「从系统相册选择」使用的是系统自带选择器，不需要此权限；');
-        buffer.writeln(
-            '但「自动同步当天照片」需要直接读取相册，必须开启该权限。');
+        buffer.writeln('注意：「从系统相册选择」使用的是系统自带选择器，不需要此权限；');
+        buffer.writeln('但「自动同步当天照片」需要直接读取相册，必须开启该权限。');
         buffer.writeln('\n请在系统设置中为 PhotoSync 开启「照片和视频」访问权限。');
-        return SyncCheckResult([], buffer.toString(),
-            permissionDenied: true);
+        buffer.writeln('如果已开启但仍提示此错误，请尝试完全关闭 App 后重新打开。');
+        return SyncCheckResult([], buffer.toString(), permissionDenied: true);
       }
 
       if (pmState == PermissionState.limited) {
-        buffer.writeln(
-            '\n⚠️ 您选择了"仅允许访问部分照片"，可能导致新照片不可见。');
-        buffer.writeln(
-            '如需同步所有照片，请在系统设置中改为"全部允许"。');
+        buffer.writeln('\n⚠️ 您选择了"仅允许访问部分照片"，可能导致新照片不可见。');
+        buffer.writeln('如需同步所有照片，请在系统设置中改为"全部允许"。');
       }
 
       final List<AssetPathEntity> albums = await PhotoManager.getAssetPathList(
@@ -140,8 +136,7 @@ class SyncService {
 
         if (isToday) {
           todayCount++;
-          log(
-              'SyncService: photo "${photo.title}" create=$createTime modified=$modifiedTime -> TODAY ✓');
+          log('SyncService: photo "${photo.title}" create=$createTime modified=$modifiedTime -> TODAY ✓');
         }
 
         // 记录最近5张照片的详细信息用于诊断
@@ -163,8 +158,7 @@ class SyncService {
         buffer.writeln('\n可能原因:');
         buffer.writeln('1. 照片的拍摄时间/修改时间不在今天范围内');
         buffer.writeln('2. 手机系统时间设置不正确');
-        buffer.writeln(
-            '3. Android 13+ 的"仅允许访问部分照片"权限限制了可见照片');
+        buffer.writeln('3. Android 13+ 的"仅允许访问部分照片"权限限制了可见照片');
         buffer.writeln('4. 刚拍摄的照片可能还未被系统索引，请等待几秒后重试');
       }
 

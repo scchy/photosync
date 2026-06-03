@@ -64,7 +64,7 @@ class PhotoGridItem extends StatelessWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(AppTheme.smallRadius),
                 color: isSelected
-                    ? AppTheme.primaryColor.withOpacity(0.3)
+                    ? AppTheme.primaryColor.withValues(alpha: 0.3)
                     : Colors.transparent,
                 border: Border.all(
                   color:
@@ -87,7 +87,7 @@ class PhotoGridItem extends StatelessWidget {
                   shape: BoxShape.circle,
                   color: isSelected
                       ? AppTheme.primaryColor
-                      : Colors.white.withOpacity(0.8),
+                      : Colors.white.withValues(alpha: 0.8),
                   border: Border.all(
                     color: isSelected ? AppTheme.primaryColor : Colors.white,
                     width: 2,
@@ -114,7 +114,7 @@ class PhotoGridItem extends StatelessWidget {
                   vertical: 2,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.6),
+                  color: Colors.black.withValues(alpha: 0.6),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: const Row(

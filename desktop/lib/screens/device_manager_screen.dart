@@ -357,7 +357,7 @@ class _DeviceManagerScreenState extends State<DeviceManagerScreen> {
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: AppTheme.primaryColor.withOpacity(0.1),
+            color: AppTheme.primaryColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(AppTheme.smallRadius),
           ),
           child: Icon(

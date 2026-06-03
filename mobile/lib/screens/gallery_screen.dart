@@ -317,84 +317,84 @@ class _GalleryScreenState extends State<GalleryScreen> {
         return;
       }
 
-    // 获取保存的设备
-    Device? device = await _loadLastDevice();
-    if (device == null) {
-      device = await _showDeviceInputDialog();
-    } else {
-      final useSaved = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('同步到设备'),
-          content: Text('使用已保存的设备?\n\nIP: ${device!.ip}\n端口: ${device.port}'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('更换'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('使用'),
-            ),
-          ],
-        ),
-      );
-      if (useSaved == null) return;
-      if (!useSaved) {
+      // 获取保存的设备
+      Device? device = await _loadLastDevice();
+      if (device == null) {
         device = await _showDeviceInputDialog();
+      } else {
+        final useSaved = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('同步到设备'),
+            content: Text('使用已保存的设备?\n\nIP: ${device!.ip}\n端口: ${device.port}'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('更换'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('使用'),
+              ),
+            ],
+          ),
+        );
+        if (useSaved == null) return;
+        if (!useSaved) {
+          device = await _showDeviceInputDialog();
+        }
       }
-    }
 
-    if (device == null) return;
-    await _saveLastDevice(device);
+      if (device == null) return;
+      await _saveLastDevice(device);
 
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('正在检查 ${photos.length} 张当天照片...')),
-    );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('正在检查 ${photos.length} 张当天照片...')),
+      );
 
-    // 检查重复
-    final hashes = <String>[];
-    final hashToPhoto = <String, AssetEntity>{};
-    for (final photo in photos) {
-      final hash = await _calculateAssetHash(photo);
-      if (hash != null) {
-        hashes.add(hash);
-        hashToPhoto[hash] = photo;
+      // 检查重复
+      final hashes = <String>[];
+      final hashToPhoto = <String, AssetEntity>{};
+      for (final photo in photos) {
+        final hash = await _calculateAssetHash(photo);
+        if (hash != null) {
+          hashes.add(hash);
+          hashToPhoto[hash] = photo;
+        }
       }
-    }
 
-    final transferService = TransferService(device);
-    final missingHashes = await transferService.checkExistingFiles(hashes);
-    transferService.dispose();
+      final transferService = TransferService(device);
+      final missingHashes = await transferService.checkExistingFiles(hashes);
+      transferService.dispose();
 
-    final duplicateCount = hashes.length - missingHashes.length;
-    final photosToSync = missingHashes
-        .where((h) => hashToPhoto.containsKey(h))
-        .map((h) => hashToPhoto[h]!)
-        .toList();
+      final duplicateCount = hashes.length - missingHashes.length;
+      final photosToSync = missingHashes
+          .where((h) => hashToPhoto.containsKey(h))
+          .map((h) => hashToPhoto[h]!)
+          .toList();
 
-    if (photosToSync.isEmpty) {
+      if (photosToSync.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('当天的照片都已经同步过了')),
+          );
+        }
+        return;
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('当天的照片都已经同步过了')),
+          SnackBar(
+            content: Text(duplicateCount > 0
+                ? '跳过 $duplicateCount 张重复，同步 ${photosToSync.length} 张...'
+                : '正在同步 ${photosToSync.length} 张当天照片...'),
+          ),
         );
       }
-      return;
-    }
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(duplicateCount > 0
-              ? '跳过 $duplicateCount 张重复，同步 ${photosToSync.length} 张...'
-              : '正在同步 ${photosToSync.length} 张当天照片...'),
-        ),
-      );
-    }
-
-    // 上传
-    await _uploadAssetPhotos(device, photosToSync);
+      // 上传
+      await _uploadAssetPhotos(device, photosToSync);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -417,7 +417,8 @@ class _GalleryScreenState extends State<GalleryScreen> {
     }
   }
 
-  Future<void> _uploadAssetPhotos(Device device, List<AssetEntity> photos) async {
+  Future<void> _uploadAssetPhotos(
+      Device device, List<AssetEntity> photos) async {
     final transferService = TransferService(device);
     final authService = AuthService();
     final user = await authService.loadUser();
@@ -434,7 +435,8 @@ class _GalleryScreenState extends State<GalleryScreen> {
         );
         if (result.success && mounted) {
           final service = TodaySyncService();
-          await service.addSyncedPhoto(filename: photo.title ?? 'photo.jpg', path: file.path);
+          await service.addSyncedPhoto(
+              filename: photo.title ?? 'photo.jpg', path: file.path);
         }
       } catch (e) {
         print('Upload error: $e');
@@ -562,19 +564,14 @@ class _GalleryScreenState extends State<GalleryScreen> {
                   const SizedBox(height: AppTheme.spacingXL),
 
                   // 主按钮：从系统相册选择
-                  ElevatedButton.icon(
-                    onPressed: _pickFromSystemGallery,
-                    icon: const Icon(Icons.photo_library_rounded, size: 28),
-                    label: const Text(
-                      '从系统相册选择照片',
-                      style: TextStyle(fontSize: 16),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                          vertical: AppTheme.spacingLG),
-                      shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(AppTheme.mediumRadius),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _pickFromSystemGallery,
+                      icon: const Icon(Icons.photo_library_rounded, size: 22),
+                      label: const Text(
+                        '从系统相册选择',
+                        style: TextStyle(fontSize: 15, letterSpacing: -0.01),
                       ),
                     ),
                   ),
@@ -582,43 +579,42 @@ class _GalleryScreenState extends State<GalleryScreen> {
                   const SizedBox(height: AppTheme.spacingMD),
 
                   // 同步当天照片按钮
-                  OutlinedButton.icon(
-                    onPressed: _syncTodayPhotos,
-                    icon: const Icon(Icons.today_rounded, size: 24),
-                    label: const Text(
-                      '同步当天照片',
-                      style: TextStyle(fontSize: 16),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                          vertical: AppTheme.spacingLG),
-                      shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(AppTheme.mediumRadius),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _syncTodayPhotos,
+                      icon: const Icon(Icons.today_rounded, size: 20),
+                      label: const Text(
+                        '同步当天照片',
+                        style: TextStyle(fontSize: 15, letterSpacing: -0.01),
                       ),
                     ),
                   ),
 
-                  const SizedBox(height: AppTheme.spacingMD),
+                  const SizedBox(height: AppTheme.spacingLG),
 
                   // 辅助说明
                   Container(
                     padding: const EdgeInsets.all(AppTheme.spacingMD),
                     decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      borderRadius:
-                          BorderRadius.circular(AppTheme.mediumRadius),
+                      color: AppTheme.infoBgColor,
+                      borderRadius: BorderRadius.circular(AppTheme.smallRadius),
+                      border: Border.all(
+                          color: AppTheme.infoColor.withValues(alpha: 0.15)),
                     ),
                     child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(Icons.info_outline, color: Colors.blue),
-                        const SizedBox(width: 12),
+                        Icon(Icons.info_outline,
+                            color: AppTheme.infoColor, size: 18),
+                        const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            '点击上方按钮调起手机系统相册选择照片，或点击"同步当天照片"自动同步今天拍摄的照片。',
+                            '选择照片手动同步，或一键同步今天拍摄的照片到桌面端。',
                             style: TextStyle(
                               fontSize: 13,
-                              color: Colors.blue.shade700,
+                              color: AppTheme.infoColor,
+                              height: 1.5,
                             ),
                           ),
                         ),
@@ -706,34 +702,23 @@ class _GalleryScreenState extends State<GalleryScreen> {
 
   Widget _buildStatsCard() {
     if (_statsLoading && _stats == null) {
-      return Container(
-        padding: const EdgeInsets.all(AppTheme.spacingLG),
-        decoration: BoxDecoration(
-          color: AppTheme.primaryColor.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(AppTheme.mediumRadius),
-          border:
-              Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.1)),
-        ),
+      return _StatsContainer(
         child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
       );
     }
 
     final stats = _stats;
     if (stats == null) {
-      return Container(
-        padding: const EdgeInsets.all(AppTheme.spacingLG),
-        decoration: BoxDecoration(
-          color: AppTheme.primaryColor.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(AppTheme.mediumRadius),
-          border:
-              Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.1)),
-        ),
+      return _StatsContainer(
         child: Column(
           children: [
-            const Icon(Icons.bar_chart, color: Colors.grey),
-            const SizedBox(height: 8),
-            const Text('暂无同步统计', style: TextStyle(color: Colors.grey)),
-            const SizedBox(height: 4),
+            const Icon(Icons.bar_chart,
+                color: AppTheme.textLightColor, size: 28),
+            const SizedBox(height: AppTheme.spacingMD),
+            const Text('暂无同步统计',
+                style: TextStyle(
+                    color: AppTheme.textSecondaryColor, fontSize: 14)),
+            const SizedBox(height: AppTheme.spacingSM),
             TextButton(
               onPressed: () => _loadStats(forceRefresh: true),
               child: const Text('刷新'),
@@ -743,21 +728,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
       );
     }
 
-    return Container(
-      padding: const EdgeInsets.all(AppTheme.spacingLG),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppTheme.primaryColor.withValues(alpha: 0.1),
-            AppTheme.primaryColor.withValues(alpha: 0.05)
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(AppTheme.mediumRadius),
-        border:
-            Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.15)),
-      ),
+    return _StatsContainer(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -767,12 +738,13 @@ class _GalleryScreenState extends State<GalleryScreen> {
               Row(
                 children: [
                   const Icon(Icons.bar_chart,
-                      color: AppTheme.primaryColor, size: 20),
+                      color: AppTheme.textPrimaryColor, size: 18),
                   const SizedBox(width: 8),
                   Text(
                     '同步统计',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w600,
+                          letterSpacing: -0.01,
                         ),
                   ),
                 ],
@@ -786,16 +758,20 @@ class _GalleryScreenState extends State<GalleryScreen> {
               else
                 InkWell(
                   onTap: () => _loadStats(forceRefresh: true),
-                  borderRadius: BorderRadius.circular(12),
-                  child: const Padding(
-                    padding: EdgeInsets.all(4),
-                    child: Icon(Icons.refresh,
-                        size: 18, color: AppTheme.primaryColor),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: AppTheme.backgroundColor,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.refresh,
+                        size: 16, color: AppTheme.textSecondaryColor),
                   ),
                 ),
             ],
           ),
-          const SizedBox(height: AppTheme.spacingMD),
+          const SizedBox(height: AppTheme.spacingLG),
           Row(
             children: [
               Expanded(
@@ -806,7 +782,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
                   icon: Icons.today,
                 ),
               ),
-              Container(width: 1, height: 40, color: AppTheme.dividerColor),
+              Container(width: 1, height: 48, color: AppTheme.dividerColor),
               Expanded(
                 child: _StatItem(
                   label: '本月同步',
@@ -815,7 +791,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
                   icon: Icons.calendar_month,
                 ),
               ),
-              Container(width: 1, height: 40, color: AppTheme.dividerColor),
+              Container(width: 1, height: 48, color: AppTheme.dividerColor),
               Expanded(
                 child: _StatItem(
                   label: '本年同步',
@@ -828,6 +804,25 @@ class _GalleryScreenState extends State<GalleryScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _StatsContainer extends StatelessWidget {
+  final Widget child;
+
+  const _StatsContainer({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppTheme.spacingLG),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceColor,
+        borderRadius: BorderRadius.circular(AppTheme.mediumRadius),
+        border: Border.all(color: AppTheme.dividerColor, width: 1.0),
+      ),
+      child: child,
     );
   }
 }
@@ -852,31 +847,39 @@ class _StatItem extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 14, color: AppTheme.textSecondaryColor),
+            Icon(icon, size: 13, color: AppTheme.textLightColor),
             const SizedBox(width: 4),
             Text(
               label,
               style: const TextStyle(
-                  fontSize: 12, color: AppTheme.textSecondaryColor),
+                fontSize: 11,
+                color: AppTheme.textLightColor,
+                letterSpacing: 0.02,
+              ),
             ),
           ],
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         RichText(
           text: TextSpan(
             children: [
               TextSpan(
                 text: value,
                 style: const TextStyle(
-                  fontSize: 20,
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.primaryColor,
+                  color: AppTheme.textPrimaryColor,
+                  letterSpacing: -0.02,
+                  height: 1.1,
                 ),
               ),
               TextSpan(
                 text: ' $unit',
                 style: const TextStyle(
-                    fontSize: 12, color: AppTheme.textSecondaryColor),
+                  fontSize: 12,
+                  color: AppTheme.textSecondaryColor,
+                  height: 1.1,
+                ),
               ),
             ],
           ),
@@ -899,7 +902,8 @@ class _TodaySyncedThumbnail extends StatelessWidget {
       margin: const EdgeInsets.only(right: AppTheme.spacingSM),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppTheme.smallRadius),
-        color: Colors.grey.shade200,
+        color: AppTheme.backgroundColor,
+        border: Border.all(color: AppTheme.dividerColor, width: 1.0),
       ),
       clipBehavior: Clip.antiAlias,
       child: photo.fileExists
@@ -916,7 +920,7 @@ class _TodaySyncedThumbnail extends StatelessWidget {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(Icons.image, color: Colors.grey.shade400, size: 24),
+        const Icon(Icons.image, color: AppTheme.textLightColor, size: 22),
         const SizedBox(height: 4),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -924,7 +928,7 @@ class _TodaySyncedThumbnail extends StatelessWidget {
             photo.filename,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 9, color: Colors.grey.shade500),
+            style: const TextStyle(fontSize: 9, color: AppTheme.textLightColor),
             textAlign: TextAlign.center,
           ),
         ),
