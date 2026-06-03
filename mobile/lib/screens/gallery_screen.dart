@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer';
 import 'dart:io';
 
@@ -13,8 +14,10 @@ import 'package:photosync_common/services/transfer_service.dart';
 import 'package:photosync_common/services/device_storage_service.dart';
 import 'package:photosync_common/services/settings_service.dart';
 
+import '../main.dart';
 import '../services/sync_service.dart';
 import '../services/sync_stats_service.dart';
+import '../services/sync_log_service.dart';
 import '../services/today_sync_service.dart';
 import '../theme/app_theme.dart';
 
@@ -31,12 +34,38 @@ class _GalleryScreenState extends State<GalleryScreen> {
   SyncStats? _stats;
   bool _statsLoading = false;
   List<TodaySyncedPhoto> _todaySynced = [];
+  List<SyncLog> _syncLogs = [];
+  StreamSubscription<void>? _syncSubscription;
 
   @override
   void initState() {
     super.initState();
     _loadStats();
     _loadTodaySynced();
+    _loadSyncLogs();
+
+    // 监听自动同步完成事件，刷新页面
+    _syncSubscription = syncCompleteController.stream.listen((_) {
+      if (mounted) {
+        _loadStats(forceRefresh: true);
+        _loadTodaySynced();
+        _loadSyncLogs();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _syncSubscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadSyncLogs() async {
+    final service = SyncLogService();
+    final logs = await service.getTodayLogs();
+    if (mounted) {
+      setState(() => _syncLogs = logs);
+    }
   }
 
   Future<void> _loadStats({bool forceRefresh = false}) async {
@@ -404,18 +433,51 @@ class _GalleryScreenState extends State<GalleryScreen> {
       }
 
       // 上传
-      await _uploadAssetPhotos(device, photosToSync);
+      final authService = AuthService();
+      final user = await authService.loadUser();
+      int successCount = 0;
+      for (int i = 0; i < photosToSync.length; i++) {
+        final photo = photosToSync[i];
+        try {
+          final file = await photo.originFile;
+          if (file == null) continue;
+          final result = await TransferService(device).uploadFile(
+            filePath: file.path,
+            filename: photo.title ?? 'photo.jpg',
+            createdAt: photo.createDateTime,
+            album: photo.relativePath,
+            userId: user?.username ?? user?.id,
+          );
+          if (result.success) {
+            successCount++;
+            final service = TodaySyncService();
+            await service.addSyncedPhoto(
+                filename: photo.title ?? 'photo.jpg', path: file.path);
+          }
+        } catch (e) {
+          log('Upload error: $e');
+        }
+      }
+
+      // 记录同步日志
+      await SyncLogService().addLog(
+        photoCount: successCount,
+        deviceName: device.name,
+        deviceIp: '${device.ip}:${device.port}',
+      );
+      _notifySyncComplete();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(duplicateCount > 0
-                ? '同步完成! 上传 ${photosToSync.length} 张，跳过 $duplicateCount 张重复'
-                : '同步完成! 已上传 ${photosToSync.length} 张当天照片'),
+                ? '同步完成! 上传 $successCount 张，跳过 $duplicateCount 张重复'
+                : '同步完成! 已上传 $successCount 张当天照片'),
           ),
         );
         await _loadTodaySynced();
         await _loadStats(forceRefresh: true);
+        await _loadSyncLogs();
       }
     } catch (e, st) {
       log('Sync today photos error: $e', stackTrace: st);
@@ -424,6 +486,13 @@ class _GalleryScreenState extends State<GalleryScreen> {
           SnackBar(content: Text('同步出错: $e')),
         );
       }
+    }
+  }
+
+  /// 通知同步完成（供手动同步调用）
+  void _notifySyncComplete() {
+    if (!syncCompleteController.isClosed) {
+      syncCompleteController.add(null);
     }
   }
 
@@ -662,6 +731,66 @@ class _GalleryScreenState extends State<GalleryScreen> {
                       ],
                     ),
                   ),
+
+                  // 今日同步日志
+                  if (_syncLogs.isNotEmpty) ...[
+                    const SizedBox(height: AppTheme.spacingXL),
+                    Row(
+                      children: [
+                        const Icon(Icons.history,
+                            color: AppTheme.textSecondaryColor, size: 18),
+                        const SizedBox(width: 8),
+                        Text(
+                          '今日同步记录',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppTheme.spacingMD),
+                    Container(
+                      padding: const EdgeInsets.all(AppTheme.spacingMD),
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceColor,
+                        borderRadius:
+                            BorderRadius.circular(AppTheme.mediumRadius),
+                        border:
+                            Border.all(color: AppTheme.dividerColor, width: 1),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: _syncLogs.map((log) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  log.success && log.photoCount > 0
+                                      ? Icons.check_circle
+                                      : log.success
+                                          ? Icons.info_outline
+                                          : Icons.error_outline,
+                                  size: 14,
+                                  color: log.success
+                                      ? AppTheme.successColor
+                                      : AppTheme.errorColor,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    log.displayText,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: AppTheme.textSecondaryColor,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
 
                   // 今日已同步照片
                   if (_todaySynced.isNotEmpty) ...[
@@ -1005,6 +1134,7 @@ class _SyncProgressSheetState extends State<_SyncProgressSheet> {
   String _currentFile = '';
   double _progress = 0.0;
   String _status = '准备中...';
+  int _successCount = 0;
 
   @override
   void initState() {
@@ -1040,6 +1170,7 @@ class _SyncProgressSheetState extends State<_SyncProgressSheet> {
             _status = '上传失败: ${result.error}';
           });
         } else {
+          _successCount++;
           // 记录成功同步的照片
           widget.onPhotoSynced(file.name, file.path);
         }
@@ -1052,6 +1183,17 @@ class _SyncProgressSheetState extends State<_SyncProgressSheet> {
     }
 
     transferService.dispose();
+
+    // 记录同步日志
+    await SyncLogService().addLog(
+      photoCount: _successCount,
+      deviceName: widget.device.name,
+      deviceIp: '${widget.device.ip}:${widget.device.port}',
+      success: !_hasError || _successCount > 0,
+    );
+    if (!syncCompleteController.isClosed) {
+      syncCompleteController.add(null);
+    }
 
     setState(() {
       _isComplete = true;

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -12,11 +13,15 @@ import 'package:photosync_common/services/transfer_service.dart';
 import 'package:photosync_common/models/device.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'services/sync_service.dart';
+import 'services/sync_log_service.dart';
 import 'screens/auth_screen.dart';
 import 'screens/gallery_screen.dart';
 import 'screens/devices_screen.dart';
 import 'screens/settings_screen.dart';
 import 'theme/app_theme.dart';
+
+/// 全局同步完成通知流，用于跨页面刷新
+final StreamController<void> syncCompleteController = StreamController<void>.broadcast();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -191,6 +196,12 @@ class _MainScreenState extends State<MainScreen> {
 
   /// 执行自动同步
   Future<void> _performAutoSync() async {
+    final logService = SyncLogService();
+    int syncCount = 0;
+    String deviceName = '桌面端';
+    String? deviceIp;
+    bool hasError = false;
+
     try {
       final settings = SettingsService();
       await settings.load();
@@ -200,9 +211,17 @@ class _MainScreenState extends State<MainScreen> {
       final savedDevices = await deviceStorage.getSavedDevices();
       if (savedDevices.isEmpty) {
         print('AutoSync: no saved device');
+        await logService.addLog(
+          photoCount: 0,
+          deviceName: '无设备',
+          message: '没有保存的设备',
+        );
+        _notifySyncComplete();
         return;
       }
       final device = savedDevices.last;
+      deviceName = device.name;
+      deviceIp = '${device.ip}:${device.port}';
 
       // 2. 检查设备是否在线
       final client = HttpClient();
@@ -213,11 +232,27 @@ class _MainScreenState extends State<MainScreen> {
         if (resp.statusCode != 200) {
           client.close();
           print('AutoSync: device offline');
+          await logService.addLog(
+            photoCount: 0,
+            deviceName: deviceName,
+            deviceIp: deviceIp,
+            success: false,
+            message: '设备离线',
+          );
+          _notifySyncComplete();
           return;
         }
       } catch (e) {
         client.close();
         print('AutoSync: device unreachable: $e');
+        await logService.addLog(
+          photoCount: 0,
+          deviceName: deviceName,
+          deviceIp: deviceIp,
+          success: false,
+          message: '设备不可达: $e',
+        );
+        _notifySyncComplete();
         return;
       }
       client.close();
@@ -227,6 +262,13 @@ class _MainScreenState extends State<MainScreen> {
       final photos = await syncService.getPhotosToSync();
       if (photos.isEmpty) {
         print('AutoSync: no photos to sync');
+        await logService.addLog(
+          photoCount: 0,
+          deviceName: deviceName,
+          deviceIp: deviceIp,
+          message: '没有待同步的照片',
+        );
+        _notifySyncComplete();
         return;
       }
 
@@ -248,7 +290,16 @@ class _MainScreenState extends State<MainScreen> {
         }
       }
 
-      if (hashes.isEmpty) return;
+      if (hashes.isEmpty) {
+        await logService.addLog(
+          photoCount: 0,
+          deviceName: deviceName,
+          deviceIp: deviceIp,
+          message: '无法计算照片哈希',
+        );
+        _notifySyncComplete();
+        return;
+      }
 
       final transferService = TransferService(device);
       final missingHashes = await transferService.checkExistingFiles(hashes);
@@ -261,6 +312,13 @@ class _MainScreenState extends State<MainScreen> {
       if (photosToSync.isEmpty) {
         transferService.dispose();
         print('AutoSync: all photos already synced');
+        await logService.addLog(
+          photoCount: 0,
+          deviceName: deviceName,
+          deviceIp: deviceIp,
+          message: '所有照片已同步',
+        );
+        _notifySyncComplete();
         return;
       }
 
@@ -287,13 +345,23 @@ class _MainScreenState extends State<MainScreen> {
           if (result.success) successCount++;
         } catch (e) {
           print('AutoSync: upload error: $e');
+          hasError = true;
         }
       }
 
       transferService.dispose();
+      syncCount = successCount;
 
       print(
           'AutoSync: completed, $successCount/${photosToSync.length} uploaded');
+
+      await logService.addLog(
+        photoCount: successCount,
+        deviceName: deviceName,
+        deviceIp: deviceIp,
+        success: !hasError,
+        message: hasError ? '部分照片上传失败' : null,
+      );
 
       // 显示通知
       if (mounted && successCount > 0) {
@@ -303,6 +371,23 @@ class _MainScreenState extends State<MainScreen> {
       }
     } catch (e) {
       print('AutoSync: failed: $e');
+      hasError = true;
+      await logService.addLog(
+        photoCount: syncCount,
+        deviceName: deviceName,
+        deviceIp: deviceIp,
+        success: false,
+        message: '同步异常: $e',
+      );
+    } finally {
+      _notifySyncComplete();
+    }
+  }
+
+  /// 通知所有监听页面同步已完成
+  void _notifySyncComplete() {
+    if (!syncCompleteController.isClosed) {
+      syncCompleteController.add(null);
     }
   }
 
