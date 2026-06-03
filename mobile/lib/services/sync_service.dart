@@ -53,6 +53,7 @@ class SyncService {
       isLimited = pmState == PermissionState.limited;
 
       // 如果权限被拒绝，尝试用 permission_handler 请求后再检查
+      bool hyperOSForceContinue = false;
       if (!pmState.isAuth) {
         log('SyncService: photo_manager denied, trying permission_handler...');
         final phStatus = await Permission.photos.request();
@@ -66,10 +67,16 @@ class SyncService {
           pmState = await PhotoManager.requestPermissionExtend();
           log('SyncService: photo_manager recheck state = $pmState, isAuth = ${pmState.isAuth}');
           buffer.writeln('相册权限状态(2): $pmState');
+
+          // HyperOS / MIUI 兼容: permission_handler 已授权但 photo_manager 仍返回 denied
+          if (!pmState.isAuth) {
+            hyperOSForceContinue = true;
+            buffer.writeln('HyperOS/MIUI 兼容模式: permission_handler 已授权，强制继续');
+          }
         }
       }
 
-      if (!pmState.isAuth) {
+      if (!pmState.isAuth && !hyperOSForceContinue) {
         buffer.writeln('\n⚠️ 相册访问权限未开启');
         buffer.writeln('注意：「从系统相册选择」使用的是系统自带选择器，不需要此权限；');
         buffer.writeln('但「自动同步当天照片」需要直接读取相册，必须开启该权限。');
