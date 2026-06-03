@@ -9,9 +9,10 @@ class SyncCheckResult {
   final List<AssetEntity> photos;
   final String diagnostics;
   final bool permissionDenied;
+  final bool isLimited;
 
   SyncCheckResult(this.photos, this.diagnostics,
-      {this.permissionDenied = false});
+      {this.permissionDenied = false, this.isLimited = false});
 }
 
 /// 同步服务
@@ -42,12 +43,14 @@ class SyncService {
   Future<SyncCheckResult> checkPhotosToSync() async {
     final buffer = StringBuffer();
 
+    bool isLimited = false;
     try {
       // 使用 photo_manager 请求权限
       log('SyncService: requesting photo permission...');
       PermissionState pmState = await PhotoManager.requestPermissionExtend();
       log('SyncService: photo_manager state = $pmState, isAuth = ${pmState.isAuth}');
       buffer.writeln('相册权限状态(1): $pmState');
+      isLimited = pmState == PermissionState.limited;
 
       // 如果权限被拒绝，尝试用 permission_handler 请求后再检查
       if (!pmState.isAuth) {
@@ -72,10 +75,11 @@ class SyncService {
         buffer.writeln('但「自动同步当天照片」需要直接读取相册，必须开启该权限。');
         buffer.writeln('\n请在系统设置中为 PhotoSync 开启「照片和视频」访问权限。');
         buffer.writeln('如果已开启但仍提示此错误，请尝试完全关闭 App 后重新打开。');
-        return SyncCheckResult([], buffer.toString(), permissionDenied: true);
+        return SyncCheckResult([], buffer.toString(),
+            permissionDenied: true, isLimited: isLimited);
       }
 
-      if (pmState == PermissionState.limited) {
+      if (isLimited) {
         buffer.writeln('\n⚠️ 您选择了"仅允许访问部分照片"，可能导致新照片不可见。');
         buffer.writeln('如需同步所有照片，请在系统设置中改为"全部允许"。');
       }
@@ -162,11 +166,11 @@ class SyncService {
         buffer.writeln('4. 刚拍摄的照片可能还未被系统索引，请等待几秒后重试');
       }
 
-      return SyncCheckResult(filtered, buffer.toString());
+      return SyncCheckResult(filtered, buffer.toString(), isLimited: isLimited);
     } catch (e, st) {
       log('SyncService error: $e', stackTrace: st);
       buffer.writeln('发生错误: $e');
-      return SyncCheckResult([], buffer.toString());
+      return SyncCheckResult([], buffer.toString(), isLimited: isLimited);
     }
   }
 

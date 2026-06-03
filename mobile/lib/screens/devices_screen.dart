@@ -238,15 +238,29 @@ class _DevicesScreenState extends State<DevicesScreen> {
   }
 
   void _showSyncEmptyDialog(String diagnostics,
-      {bool permissionDenied = false}) {
+      {bool permissionDenied = false, bool isLimited = false}) {
+    final String title;
+    final String hint;
+    if (permissionDenied) {
+      title = '相册权限未开启';
+      hint = '提示:\n• 请在系统设置中为 PhotoSync 开启「照片和视频」访问权限\n• 如果已开启但仍提示此错误，请尝试完全关闭 App 后重新打开';
+    } else if (isLimited) {
+      title = '仅允许访问部分照片';
+      hint = '提示:\n• 您选择了"仅允许访问部分照片"，系统只让 App 读取选中的照片\n• 请在系统设置中将权限改为"全部允许"\n• 修改后请完全关闭 App 再重新打开';
+    } else {
+      title = '未找到可同步的当天照片';
+      hint = '提示:\n• 确保手机相册中有今天拍摄的照片\n• 部分照片可能因缺少拍摄时间信息无法识别\n• 请检查相册访问权限是否已开启\n• 刚拍的照片可能还未被系统索引，请等待几秒后重试';
+    }
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.info_outline, color: Colors.blue),
-            SizedBox(width: 8),
-            Text('同步诊断'),
+            Icon(Icons.info_outline,
+                color: permissionDenied || isLimited ? Colors.orange : Colors.blue),
+            const SizedBox(width: 8),
+            const Text('同步诊断'),
           ],
         ),
         content: SingleChildScrollView(
@@ -255,15 +269,15 @@ class _DevicesScreenState extends State<DevicesScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                permissionDenied ? '相册权限未开启' : '未找到可同步的当天照片',
+                title,
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               Text(diagnostics, style: const TextStyle(fontSize: 13)),
               const SizedBox(height: 12),
-              const Text(
-                '提示:\n• 确保手机相册中有今天拍摄的照片\n• 部分照片可能因缺少拍摄时间信息无法识别\n• 请检查相册访问权限是否已开启\n• 刚拍的照片可能还未被系统索引，请等待几秒后重试',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
+              Text(
+                hint,
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
               ),
             ],
           ),
@@ -273,13 +287,13 @@ class _DevicesScreenState extends State<DevicesScreen> {
             onPressed: () => Navigator.pop(context),
             child: const Text('知道了'),
           ),
-          if (permissionDenied)
+          if (permissionDenied || isLimited)
             ElevatedButton(
               onPressed: () async {
                 Navigator.pop(context);
                 await openAppSettings();
               },
-              child: const Text('去设置开启'),
+              child: const Text('去设置修改'),
             )
           else
             TextButton(
@@ -902,7 +916,9 @@ class _DevicesScreenState extends State<DevicesScreen> {
 
                   if (photos.isEmpty) {
                     if (context.mounted) {
-                      _showSyncEmptyDialog(checkResult.diagnostics);
+                      _showSyncEmptyDialog(checkResult.diagnostics,
+                          permissionDenied: checkResult.permissionDenied,
+                          isLimited: checkResult.isLimited);
                     }
                     return;
                   }
