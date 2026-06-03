@@ -84,24 +84,45 @@ class SyncService {
         buffer.writeln('如需同步所有照片，请在系统设置中改为"全部允许"。');
       }
 
-      final List<AssetPathEntity> albums = await PhotoManager.getAssetPathList(
+      // 尝试 onlyAll 获取，部分机型可能返回空，回退到全部相册
+      List<AssetPathEntity> albums = await PhotoManager.getAssetPathList(
         type: RequestType.image,
         onlyAll: true,
       );
-      log('SyncService: found ${albums.length} albums');
-      buffer.writeln('\n找到 ${albums.length} 个相册');
+      log('SyncService: found ${albums.length} albums (onlyAll)');
+      buffer.writeln('\n找到 ${albums.length} 个相册 (onlyAll)');
+
+      if (albums.isEmpty) {
+        log('SyncService: onlyAll returned empty, fallback to all albums');
+        buffer.writeln('onlyAll 返回空，尝试获取所有相册...');
+        albums = await PhotoManager.getAssetPathList(
+          type: RequestType.image,
+          onlyAll: false,
+        );
+        log('SyncService: fallback found ${albums.length} albums');
+        buffer.writeln('回退后找到 ${albums.length} 个相册');
+      }
 
       if (albums.isEmpty) {
         log('SyncService: no albums found');
         buffer.writeln('未找到任何相册');
-        return SyncCheckResult([], buffer.toString());
+        return SyncCheckResult([], buffer.toString(), isLimited: isLimited);
       }
 
-      // 获取全部照片
-      final album = albums[0];
-      final assetCount = await album.assetCountAsync;
-      log('SyncService: album "${album.name}" has $assetCount assets');
-      buffer.writeln('相册 "${album.name}" 共 $assetCount 张照片');
+      // 获取照片数量最多的相册
+      AssetPathEntity album = albums[0];
+      int maxCount = await album.assetCountAsync;
+      for (int i = 1; i < albums.length; i++) {
+        final count = await albums[i].assetCountAsync;
+        if (count > maxCount) {
+          maxCount = count;
+          album = albums[i];
+        }
+      }
+
+      final assetCount = maxCount;
+      log('SyncService: using album "${album.name}" with $assetCount assets');
+      buffer.writeln('使用相册 "${album.name}" 共 $assetCount 张照片');
 
       final List<AssetEntity> allPhotos = await album.getAssetListPaged(
         page: 0,
@@ -113,6 +134,7 @@ class SyncService {
       // 显示当前系统时间，帮助诊断时区问题
       final now = DateTime.now();
       buffer.writeln('\n当前系统时间: ${now.toString()}');
+      buffer.writeln('时区: ${now.timeZoneName} (偏移: ${now.timeZoneOffset})');
 
       if (!syncTodayOnly) {
         log('SyncService: returning all ${allPhotos.length} photos (syncTodayOnly=false)');
