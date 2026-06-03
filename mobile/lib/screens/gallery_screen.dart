@@ -597,7 +597,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
                   Container(
                     padding: const EdgeInsets.all(AppTheme.spacingMD),
                     decoration: BoxDecoration(
-                      color: AppTheme.infoBgColor,
+                      color: AppTheme.infoColor.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(AppTheme.smallRadius),
                       border: Border.all(
                           color: AppTheme.infoColor.withValues(alpha: 0.15)),
