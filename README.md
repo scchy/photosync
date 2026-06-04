@@ -4,23 +4,40 @@
 
 ## 功能
 
-- **WiFi 设备发现**：手机自动发现同一局域网下的桌面端（支持手动添加 IP）
-- **照片同步**：选择照片手动上传，或开启自动同步
+- **WiFi 设备发现**：手机自动发现同一局域网下的桌面端（支持扫码 + 手动输入 IP）
+- **照片同步**：选择照片手动上传，或一键同步当天拍摄的照片
 - **增量同步**：基于 SHA-256 哈希，只传输新文件
-- **自动同步**：连接 WiFi 后自动检测并同步新照片（默认开启，仅同步当天）
+- **打开即同步**：App 启动时自动检测 WiFi 并同步当天照片
+- **同步日志**：相册页面显示当天同步记录（时间、数量、设备）
 - **桌面端浏览**：按用户/年/月分组浏览，支持展开/折叠
 - **照片管理**：桌面端支持删除照片，自动清理空目录
-- **同步日志**：实时记录上传/删除/设备连接事件，支持筛选
+- **同步统计**：今日/本月/本年同步数量实时统计
 - **已保存设备**：手机端支持编辑/删除已保存的桌面端设备
-- **重复检测**：上传前检查服务器哈希，避免重复传输
+- **Xiaomi HyperOS / MIUI 兼容**：处理系统相册权限检测差异
 
 ## 技术栈
 
 - **Flutter** — 跨平台（Android + Linux 桌面）
 - **HTTP 文件传输** — 基于 shelf + multipart
-- **SQLite** — 桌面端照片索引 + 同步日志
-- **SharedPreferences** — 设置持久化 + 设备存储
-- **Material Design 3** — 清新蓝绿主题
+- **纯文件系统存储** — 桌面端无 SQLite，照片元数据实时扫描文件系统
+- **SharedPreferences** — 设置持久化 + 设备存储 + 同步日志
+- **Material Design 3** — 活力蓝绿主题
+
+## 存储结构
+
+桌面端采用纯文件系统存储，无需数据库：
+
+```
+{storageRoot}/
+├── photos/
+│   └── {userId}/
+│       └── {yyyy}/
+│           └── {mm}/
+│               └── {filename}
+├── hashes.json          # 照片哈希去重索引
+└── logs/
+    └── sync_{yyyymmdd}.jsonl   # 同步日志
+```
 
 ## 项目结构
 
@@ -31,10 +48,11 @@ photosync/
 │   └── lib/services/    # Auth, Discovery, Transfer, Settings, AutoSync, DeviceStorage
 ├── mobile/              # 手机端 Flutter 应用（Android）
 │   ├── lib/screens/     # Gallery, Devices, Settings, Auth
-│   └── lib/services/    # SyncService
+│   ├── lib/services/    # SyncService, SyncLogService, TodaySyncService, SyncStatsService
+│   └── lib/widgets/     # PhotoGridItem
 ├── desktop/             # 桌面端 Linux 应用
 │   ├── lib/screens/     # PhotoBrowser, DeviceManager, SyncLog, Settings, Auth
-│   └── lib/services/    # DesktopServer, StorageManager
+│   └── lib/services/    # DesktopServer, StorageConfigService
 ├── integration_test/    # 集成测试
 ├── docs/                # 设计文档
 └── build.sh             # 构建脚本
@@ -44,7 +62,7 @@ photosync/
 
 ### 环境要求
 
-- Flutter SDK 3.16+
+- Flutter SDK 3.27+
 - Android SDK（手机端）
 - Linux 开发环境（桌面端）
 - Java 17
@@ -82,9 +100,8 @@ flutter run -d linux
 
 | 设置项 | 默认值 | 说明 |
 |--------|--------|------|
-| 自动同步 | ✅ 开启 | 连接WiFi时自动同步 |
-| 仅WiFi同步 | ✅ 开启 | 仅在WiFi下同步 |
-| 仅同步新照片 | ✅ 开启 | 跳过已同步的照片 |
+| 自动同步 | ✅ 开启 | 打开 App 时自动同步 |
+| 仅 WiFi 同步 | ✅ 开启 | 仅在 WiFi 下同步 |
 | 仅同步当天 | ✅ 开启 | 只同步今天拍摄的照片 |
 | 同步质量 | 原图 | 保持原始画质 |
 

@@ -69,6 +69,23 @@ else
 fi
 cd ..
 
+# iOS build (requires macOS with Xcode)
+echo ""
+echo "🍎 Building mobile app (iOS)..."
+echo "Note: iOS build requires macOS with Xcode. Skipping on non-macOS systems."
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    cd mobile
+    if flutter build ios --release --no-codesign; then
+        print_status "Mobile iOS built successfully"
+        ls -lh build/ios/iphoneos/Runner.app 2>/dev/null || true
+    else
+        print_warning "iOS build failed"
+    fi
+    cd ..
+else
+    print_warning "iOS build skipped (requires macOS)"
+fi
+
 # Build desktop app (Linux)
 echo ""
 echo "🖥️  Building desktop app (Linux)..."

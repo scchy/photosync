@@ -496,46 +496,6 @@ class _GalleryScreenState extends State<GalleryScreen> {
     }
   }
 
-  Future<void> _uploadAssetPhotos(Device device, List<AssetEntity> photos,
-      {void Function(int current, int total, String filename)?
-          onProgress}) async {
-    final transferService = TransferService(device);
-    final authService = AuthService();
-    final user = await authService.loadUser();
-    for (int i = 0; i < photos.length; i++) {
-      final photo = photos[i];
-      try {
-        onProgress?.call(i, photos.length, photo.title ?? 'photo.jpg');
-        final file = await photo.originFile;
-        if (file == null) continue;
-        final result = await transferService.uploadFile(
-          filePath: file.path,
-          filename: photo.title ?? 'photo.jpg',
-          createdAt: photo.createDateTime,
-          album: photo.relativePath,
-          userId: user?.username ?? user?.id,
-        );
-        if (result.success && mounted) {
-          final service = TodaySyncService();
-          await service.addSyncedPhoto(
-              filename: photo.title ?? 'photo.jpg', path: file.path);
-        } else if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('上传失败: ${result.error}')),
-          );
-        }
-      } catch (e) {
-        log('Upload error: $e');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('上传 ${photo.title} 失败: $e')),
-          );
-        }
-      }
-    }
-    transferService.dispose();
-  }
-
   void _showSyncEmptyDialog(String diagnostics,
       {bool permissionDenied = false, bool isLimited = false}) {
     final String title;

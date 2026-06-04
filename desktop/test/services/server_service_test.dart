@@ -36,7 +36,6 @@ void main() {
     test('should handle health check', () async {
       // Arrange
       await server.start();
-      final port = server.port;
 
       // Act - make HTTP request to health endpoint
       // In real test, would use http client

@@ -21,7 +21,8 @@ import 'screens/settings_screen.dart';
 import 'theme/app_theme.dart';
 
 /// 全局同步完成通知流，用于跨页面刷新
-final StreamController<void> syncCompleteController = StreamController<void>.broadcast();
+final StreamController<void> syncCompleteController =
+    StreamController<void>.broadcast();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

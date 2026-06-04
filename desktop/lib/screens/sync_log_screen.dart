@@ -115,8 +115,6 @@ class _SyncLogScreenState extends State<SyncLogScreen> {
   Widget _buildSummaryCards() {
     final todayUploads = _summary['today_uploads'] ?? 0;
     final todayPhotos = _summary['today_photos'] ?? 0;
-    final todaySize = _summary['today_size'] ?? 0;
-    final totalLogs = _summary['total_logs'] ?? 0;
     final errorCount = _summary['error_count'] ?? 0;
     final deviceCount = _summary['device_count'] ?? 0;
 

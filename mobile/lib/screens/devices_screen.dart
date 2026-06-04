@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:developer';
+
 import 'dart:io';
 
 import 'package:flutter/services.dart';
@@ -15,10 +15,10 @@ import 'package:photosync_common/services/transfer_service.dart';
 import 'package:photosync_common/services/device_storage_service.dart';
 import 'package:photosync_common/services/settings_service.dart';
 
-import 'package:shared_preferences/shared_preferences.dart';
+
 
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
+
 
 import '../theme/app_theme.dart';
 import '../services/sync_service.dart';
@@ -221,7 +221,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
       } else {
         _showMessage('连接失败: HTTP ${response.statusCode}');
       }
-    } on SocketException catch (e) {
+    } on SocketException catch (_) {
       _showMessage(
           '无法连接到 $ip:$port，请检查:\n1. 桌面端是否已启动\n2. 手机和电脑是否在同一WiFi\n3. IP 地址是否正确');
     } catch (e) {
@@ -497,7 +497,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
       } else {
         _showMessage('重连失败: HTTP ${response.statusCode}');
       }
-    } on SocketException catch (e) {
+    } on SocketException catch (_) {
       _showMessage('无法连接到 ${device.ip}:${device.port}，请检查设备是否在线');
     } catch (e) {
       _showMessage('重连失败: $e');
