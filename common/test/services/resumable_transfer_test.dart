@@ -3,22 +3,13 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as path;
 import 'package:photosync_common/services/resumable_transfer.dart';
-import 'package:photosync_common/models/device.dart';
 
 void main() {
   group('ResumableTransfer Tests', () {
     late ResumableTransfer resumableTransfer;
-    late Device mockDevice;
     late Directory tempDir;
 
     setUp(() async {
-      mockDevice = Device(
-        id: 'desktop_001',
-        name: 'TestPC',
-        type: 'desktop',
-        ip: '127.0.0.1',
-        port: 8080,
-      );
       resumableTransfer = ResumableTransfer();
       tempDir = await Directory.systemTemp.createTemp('resumable_test_');
     });
