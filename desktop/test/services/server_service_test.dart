@@ -1,16 +1,31 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:photosync_desktop/services/server_service.dart';
 
 void main() {
   group('DesktopServer Tests', () {
     late DesktopServer server;
+    late Directory tempDir;
 
-    setUp(() {
+    setUp(() async {
+      tempDir = await Directory.systemTemp.createTemp('photosync_server_test_');
+      SharedPreferences.setMockInitialValues({
+        'photosync_storage_path': tempDir.path,
+      });
       server = DesktopServer();
     });
 
     tearDown(() {
-      server.stop();
+      try {
+        server.stop();
+      } catch (_) {
+        // ignore if server was never started
+      }
+      try {
+        tempDir.deleteSync(recursive: true);
+      } catch (_) {}
     });
 
     test('should start server on available port', () async {

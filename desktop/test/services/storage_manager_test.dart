@@ -14,7 +14,7 @@ class MockPathProviderPlatform extends Fake
   MockPathProviderPlatform(this.tempPath);
 
   @override
-  Future<String?> getApplicationDocumentsDirectory() async {
+  Future<String?> getApplicationDocumentsPath() async {
     return tempPath;
   }
 

@@ -45,7 +45,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     // 读取应用版本号
     String version = '1.0.0';
     try {
-      final packageInfo = await PackageInfo.fromPlatform();
+      final packageInfo = await PackageInfo.fromPlatform()
+          .timeout(const Duration(seconds: 2));
       version = '${packageInfo.version}+${packageInfo.buildNumber}';
     } catch (e) {
       print('读取版本号失败: $e');

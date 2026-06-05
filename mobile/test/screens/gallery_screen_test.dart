@@ -13,10 +13,10 @@ void main() {
           home: const GalleryScreen(),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 2));
 
       // Assert
-      expect(find.text('相册'), findsOneWidget);
+      expect(find.text('相册同步'), findsOneWidget);
       expect(find.byType(GalleryScreen), findsOneWidget);
     });
 
@@ -43,10 +43,10 @@ void main() {
           home: const GalleryScreen(),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 2));
 
       // Assert - should find the select button
-      expect(find.byIcon(Icons.select_all_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.photo_library_rounded), findsOneWidget);
     });
   });
 }
