@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 /// 设备模型（手动实现，不依赖代码生成）
 class Device {
   final String id;

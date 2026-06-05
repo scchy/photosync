@@ -19,7 +19,7 @@ void main() {
         ip: '127.0.0.1',
         port: 8080,
       );
-      resumableTransfer = ResumableTransfer(mockDevice);
+      resumableTransfer = ResumableTransfer();
       tempDir = await Directory.systemTemp.createTemp('resumable_test_');
     });
 
@@ -101,8 +101,7 @@ void main() {
       // Arrange
       final testFile = File(path.join(tempDir.path, 'test.txt'));
       await testFile.writeAsString('hello world test data');
-      final chunks =
-          await resumableTransfer.splitFile(testFile.path, chunkSize: 7);
+      await resumableTransfer.splitFile(testFile.path, chunkSize: 7);
 
       // Mark some chunks as uploaded
       await resumableTransfer.markChunkUploaded(testFile.path, 0);
@@ -159,8 +158,7 @@ void main() {
       }
       await testFile.writeAsBytes(data);
 
-      final chunks = await resumableTransfer.splitFile(testFile.path,
-          chunkSize: 1024 * 1024);
+      await resumableTransfer.splitFile(testFile.path, chunkSize: 1024 * 1024);
 
       // Simulate: Upload 2 of 5 chunks, then interrupt
       await resumableTransfer.markChunkUploaded(testFile.path, 0);

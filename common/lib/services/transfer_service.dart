@@ -1,14 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
-import 'package:path/path.dart' as path;
 
 import '../models/device.dart';
-import '../models/photo.dart';
-import '../models/sync_task.dart';
 
 /// 文件传输服务
 class TransferService {

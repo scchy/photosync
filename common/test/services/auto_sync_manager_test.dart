@@ -129,10 +129,7 @@ void main() {
     });
 
     test('should add and remove sync listener', () {
-      var listenerCalled = false;
-      void listener() {
-        listenerCalled = true;
-      }
+      void listener() {}
 
       autoSyncManager.addSyncListener(listener);
       expect(autoSyncManager.hasListeners, true);

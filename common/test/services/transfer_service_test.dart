@@ -1,8 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mockito/mockito.dart';
 import 'package:photosync_common/services/transfer_service.dart';
 import 'package:photosync_common/models/device.dart';
-import 'package:photosync_common/models/photo.dart';
 
 void main() {
   group('TransferService Tests', () {

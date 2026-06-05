@@ -1,16 +1,12 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as path;
-import 'package:photosync_common/models/device.dart';
 
 /// 断点续传服务
 /// 将大文件分片上传，支持中断后恢复
 class ResumableTransfer {
-  final Device _device;
-
   // 存储上传进度（文件路径 -> 已上传的chunk索引）
   final Map<String, Set<int>> _uploadProgress = {};
 
@@ -20,7 +16,7 @@ class ResumableTransfer {
   // 默认分片大小: 1MB
   static const int defaultChunkSize = 1024 * 1024;
 
-  ResumableTransfer(this._device);
+  ResumableTransfer();
 
   /// 将文件分片
   Future<List<FileChunk>> splitFile(String filePath,

@@ -15,10 +15,7 @@ import 'package:photosync_common/services/transfer_service.dart';
 import 'package:photosync_common/services/device_storage_service.dart';
 import 'package:photosync_common/services/settings_service.dart';
 
-
-
 import 'package:qr_flutter/qr_flutter.dart';
-
 
 import '../theme/app_theme.dart';
 import '../services/sync_service.dart';
