@@ -194,9 +194,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   child: TextButton(
                     onPressed: _toggleMode,
                     child: Text(
-                      _isRegister
-                          ? '已有账号？去登录'
-                          : '没有账号？去注册',
+                      _isRegister ? '已有账号？去登录' : '没有账号？去注册',
                     ),
                   ),
                 ),

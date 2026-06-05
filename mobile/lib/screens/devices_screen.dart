@@ -95,8 +95,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
             Text(
               '请输入桌面端的 IP 地址和端口',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppTheme.textSecondaryColor,
-              ),
+                    color: AppTheme.textSecondaryColor,
+                  ),
             ),
             const SizedBox(height: 12),
             TextField(
@@ -518,93 +518,95 @@ class _DevicesScreenState extends State<DevicesScreen> {
         child: Stack(
           children: [
             CustomScrollView(
-            slivers: [
-              SliverToBoxAdapter(
-                child: _buildHeader(),
-              ),
-              if (_isScanning &&
-                  _onlineDevices.isEmpty &&
-                  _savedDevices.isEmpty)
-                SliverFillRemaining(
-                  child: _buildScanningState(),
-                )
-              else if (_onlineDevices.isEmpty && _savedDevices.isEmpty)
-                SliverFillRemaining(
-                  child: _buildEmptyState(),
-                )
-              else ...[
-                // 在线设备列表
-                if (_onlineDevices.isNotEmpty) ...[
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.only(
-                        left: AppTheme.spacingMD,
-                        right: AppTheme.spacingMD,
-                        top: AppTheme.spacingSM,
-                        bottom: AppTheme.spacingXS,
-                      ),
-                      child: Text(
-                        '在线设备',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              color: AppTheme.textSecondaryColor,
-                              fontWeight: FontWeight.w600,
-                            ),
-                      ),
-                    ),
-                  ),
-                  SliverPadding(
-                    padding: const EdgeInsets.all(AppTheme.spacingMD),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) => _buildDeviceCard(
-                            _onlineDevices[index],
-                            isOnline: true),
-                        childCount: _onlineDevices.length,
+              slivers: [
+                SliverToBoxAdapter(
+                  child: _buildHeader(),
+                ),
+                if (_isScanning &&
+                    _onlineDevices.isEmpty &&
+                    _savedDevices.isEmpty)
+                  SliverFillRemaining(
+                    child: _buildScanningState(),
+                  )
+                else if (_onlineDevices.isEmpty && _savedDevices.isEmpty)
+                  SliverFillRemaining(
+                    child: _buildEmptyState(),
+                  )
+                else ...[
+                  // 在线设备列表
+                  if (_onlineDevices.isNotEmpty) ...[
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.only(
+                          left: AppTheme.spacingMD,
+                          right: AppTheme.spacingMD,
+                          top: AppTheme.spacingSM,
+                          bottom: AppTheme.spacingXS,
+                        ),
+                        child: Text(
+                          '在线设备',
+                          style:
+                              Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    color: AppTheme.textSecondaryColor,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                        ),
                       ),
                     ),
-                  ),
+                    SliverPadding(
+                      padding: const EdgeInsets.all(AppTheme.spacingMD),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) => _buildDeviceCard(
+                              _onlineDevices[index],
+                              isOnline: true),
+                          childCount: _onlineDevices.length,
+                        ),
+                      ),
+                    ),
+                  ],
+                  // 历史/离线设备列表
+                  if (_savedDevices.isNotEmpty) ...[
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.only(
+                          left: AppTheme.spacingMD,
+                          right: AppTheme.spacingMD,
+                          top: AppTheme.spacingSM,
+                          bottom: AppTheme.spacingXS,
+                        ),
+                        child: Text(
+                          '历史设备',
+                          style:
+                              Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    color: AppTheme.textSecondaryColor,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                        ),
+                      ),
+                    ),
+                    SliverPadding(
+                      padding: const EdgeInsets.all(AppTheme.spacingMD),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) {
+                            final device = _savedDevices[index];
+                            final isOnline =
+                                _onlineDevices.any((d) => d.id == device.id);
+                            return _buildDeviceCard(device, isOnline: isOnline);
+                          },
+                          childCount: _savedDevices.length,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
-                // 历史/离线设备列表
-                if (_savedDevices.isNotEmpty) ...[
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.only(
-                        left: AppTheme.spacingMD,
-                        right: AppTheme.spacingMD,
-                        top: AppTheme.spacingSM,
-                        bottom: AppTheme.spacingXS,
-                      ),
-                      child: Text(
-                        '历史设备',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              color: AppTheme.textSecondaryColor,
-                              fontWeight: FontWeight.w600,
-                            ),
-                      ),
-                    ),
-                  ),
-                  SliverPadding(
-                    padding: const EdgeInsets.all(AppTheme.spacingMD),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          final device = _savedDevices[index];
-                          final isOnline =
-                              _onlineDevices.any((d) => d.id == device.id);
-                          return _buildDeviceCard(device, isOnline: isOnline);
-                        },
-                        childCount: _savedDevices.length,
-                      ),
-                    ),
-                  ),
-                ],
+                // 底部占位
+                const SliverToBoxAdapter(
+                  child: SizedBox(height: 40),
+                ),
               ],
-              // 底部占位
-              const SliverToBoxAdapter(
-                child: SizedBox(height: 40),
-              ),
-            ],
-          ),
+            ),
             // 重连加载指示器
             if (_isReconnecting)
               Container(

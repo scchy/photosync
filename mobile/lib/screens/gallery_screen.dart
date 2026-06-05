@@ -671,7 +671,8 @@ class _GalleryScreenState extends State<GalleryScreen> {
                     ),
                     decoration: BoxDecoration(
                       color: AppTheme.surfaceContainerLow,
-                      borderRadius: BorderRadius.circular(AppTheme.mediumRadius),
+                      borderRadius:
+                          BorderRadius.circular(AppTheme.mediumRadius),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -685,9 +686,10 @@ class _GalleryScreenState extends State<GalleryScreen> {
                         Expanded(
                           child: Text(
                             '选择照片手动同步，或一键同步今天拍摄的照片到桌面端。',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: AppTheme.textSecondaryColor,
-                                ),
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: AppTheme.textSecondaryColor,
+                                    ),
                           ),
                         ),
                       ],
@@ -707,7 +709,8 @@ class _GalleryScreenState extends State<GalleryScreen> {
                       padding: const EdgeInsets.all(AppTheme.spacingMD),
                       decoration: BoxDecoration(
                         color: AppTheme.surfaceColor,
-                        borderRadius: BorderRadius.circular(AppTheme.largeRadius),
+                        borderRadius:
+                            BorderRadius.circular(AppTheme.largeRadius),
                         boxShadow: AppTheme.cardShadow,
                       ),
                       child: Column(

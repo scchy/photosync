@@ -402,7 +402,8 @@ class AppTheme {
         backgroundColor: surfaceColor,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(largeRadius)),
+          borderRadius:
+              BorderRadius.vertical(top: Radius.circular(largeRadius)),
         ),
       ),
       // === Dialog ===
