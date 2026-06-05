@@ -109,7 +109,7 @@ void main() {
       // Act: Add files that exceed cache limit
       await cache.put('photo_009', Uint8List(100));
       await Future.delayed(
-          Duration(milliseconds: 10)); // Ensure different timestamps
+          const Duration(seconds: 2)); // Ensure different timestamps
       await cache.put('photo_010', Uint8List(100));
 
       // Assert: Oldest should be evicted
