@@ -5,7 +5,7 @@ import '../theme/app_theme.dart';
 class AuthScreen extends StatefulWidget {
   final VoidCallback onLoginSuccess;
 
-  const AuthScreen({Key? key, required this.onLoginSuccess}) : super(key: key);
+  const AuthScreen({super.key, required this.onLoginSuccess});
 
   @override
   State<AuthScreen> createState() => _AuthScreenState();
@@ -79,80 +79,130 @@ class _AuthScreenState extends State<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.backgroundColor,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(AppTheme.spacingLG),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Icon(Icons.photo_library_rounded,
-                  size: 80, color: AppTheme.primaryColor),
-              const SizedBox(height: AppTheme.spacingLG),
-              Text(
-                'PhotoSync',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryColor),
-              ),
-              const SizedBox(height: AppTheme.spacingSM),
-              Text(
-                _isRegister ? '注册新账号' : '欢迎回来',
-                textAlign: TextAlign.center,
-                style:
-                    TextStyle(fontSize: 16, color: AppTheme.textSecondaryColor),
-              ),
-              const SizedBox(height: AppTheme.spacingXL),
-              TextField(
-                controller: _usernameCtrl,
-                decoration: const InputDecoration(
-                    labelText: '用户名', prefixIcon: Icon(Icons.person_outline)),
-              ),
-              const SizedBox(height: AppTheme.spacingMD),
-              TextField(
-                controller: _passwordCtrl,
-                obscureText: true,
-                decoration: const InputDecoration(
-                    labelText: '密码', prefixIcon: Icon(Icons.lock_outline)),
-              ),
-              if (_isRegister) ...[
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingLG),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: MediaQuery.of(context).size.height -
+                  MediaQuery.of(context).padding.top -
+                  MediaQuery.of(context).padding.bottom,
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: AppTheme.spacing2XL),
+                // Brand mark
+                Container(
+                  width: 88,
+                  height: 88,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(AppTheme.largeRadius),
+                  ),
+                  child: const Icon(
+                    Icons.photo_library_rounded,
+                    size: 44,
+                    color: AppTheme.primaryColor,
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spacingXL),
+                Text(
+                  'PhotoSync',
+                  style: theme.textTheme.displayMedium?.copyWith(
+                    color: AppTheme.primaryColor,
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spacingXS),
+                Text(
+                  _isRegister ? '创建新账号' : '欢迎回来',
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: AppTheme.textSecondaryColor,
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spacing2XL),
+                // Form
+                TextField(
+                  controller: _usernameCtrl,
+                  decoration: const InputDecoration(
+                    labelText: '用户名',
+                    prefixIcon: Icon(Icons.person_outline),
+                  ),
+                ),
                 const SizedBox(height: AppTheme.spacingMD),
                 TextField(
-                  controller: _confirmPasswordCtrl,
+                  controller: _passwordCtrl,
                   obscureText: true,
                   decoration: const InputDecoration(
-                      labelText: '确认密码', prefixIcon: Icon(Icons.lock_outline)),
+                    labelText: '密码',
+                    prefixIcon: Icon(Icons.lock_outline),
+                  ),
                 ),
-              ],
-              if (_errorMsg != null) ...[
+                if (_isRegister) ...[
+                  const SizedBox(height: AppTheme.spacingMD),
+                  TextField(
+                    controller: _confirmPasswordCtrl,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      labelText: '确认密码',
+                      prefixIcon: Icon(Icons.lock_outline),
+                    ),
+                  ),
+                ],
+                if (_errorMsg != null) ...[
+                  const SizedBox(height: AppTheme.spacingMD),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.spacingMD,
+                      vertical: AppTheme.spacingSM,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.errorColor.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(AppTheme.smallRadius),
+                    ),
+                    child: Text(
+                      _errorMsg!,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: AppTheme.errorColor,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: AppTheme.spacingXL),
+                ElevatedButton(
+                  onPressed: _isLoading ? null : _submit,
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(_isRegister ? '注册账号' : '登录'),
+                ),
                 const SizedBox(height: AppTheme.spacingMD),
-                Text(
-                  _errorMsg!,
-                  style: const TextStyle(color: Colors.red),
-                  textAlign: TextAlign.center,
+                Center(
+                  child: TextButton(
+                    onPressed: _toggleMode,
+                    child: Text(
+                      _isRegister
+                          ? '已有账号？去登录'
+                          : '没有账号？去注册',
+                    ),
+                  ),
                 ),
+                const SizedBox(height: AppTheme.spacing2XL),
               ],
-              const SizedBox(height: AppTheme.spacingXL),
-              ElevatedButton(
-                onPressed: _isLoading ? null : _submit,
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Text(_isRegister ? '注册' : '登录'),
-              ),
-              const SizedBox(height: AppTheme.spacingMD),
-              TextButton(
-                onPressed: _toggleMode,
-                child: Text(_isRegister ? '已有账号？去登录' : '没有账号？去注册'),
-              ),
-            ],
+            ),
           ),
         ),
       ),

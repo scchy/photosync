@@ -92,9 +92,11 @@ class _DevicesScreenState extends State<DevicesScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
+            Text(
               '请输入桌面端的 IP 地址和端口',
-              style: TextStyle(fontSize: 13, color: Colors.grey),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppTheme.textSecondaryColor,
+              ),
             ),
             const SizedBox(height: 12),
             TextField(
@@ -512,9 +514,10 @@ class _DevicesScreenState extends State<DevicesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          CustomScrollView(
+      body: SafeArea(
+        child: Stack(
+          children: [
+            CustomScrollView(
             slivers: [
               SliverToBoxAdapter(
                 child: _buildHeader(),
@@ -602,26 +605,27 @@ class _DevicesScreenState extends State<DevicesScreen> {
               ),
             ],
           ),
-          // 重连加载指示器
-          if (_isReconnecting)
-            Container(
-              color: Colors.black.withValues(alpha: 0.3),
-              child: const Center(
-                child: CircularProgressIndicator(),
+            // 重连加载指示器
+            if (_isReconnecting)
+              Container(
+                color: AppTheme.textPrimaryColor.withValues(alpha: 0.3),
+                child: const Center(
+                  child: CircularProgressIndicator(),
+                ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildHeader() {
     return Container(
-      padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + AppTheme.spacingMD,
-        left: AppTheme.spacingMD,
-        right: AppTheme.spacingMD,
-        bottom: AppTheme.spacingMD,
+      padding: const EdgeInsets.fromLTRB(
+        AppTheme.spacingLG,
+        AppTheme.spacingLG,
+        AppTheme.spacingLG,
+        AppTheme.spacingMD,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -742,7 +746,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
       margin: const EdgeInsets.only(bottom: AppTheme.spacingMD),
       decoration: BoxDecoration(
         color: AppTheme.surfaceColor,
-        borderRadius: BorderRadius.circular(AppTheme.mediumRadius),
+        borderRadius: BorderRadius.circular(AppTheme.largeRadius),
         boxShadow: AppTheme.cardShadow,
       ),
       child: Material(
@@ -751,7 +755,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
           onTap: isOnline
               ? () => _showDeviceOptions(device)
               : () => _reconnectDevice(device),
-          borderRadius: BorderRadius.circular(AppTheme.mediumRadius),
+          borderRadius: BorderRadius.circular(AppTheme.largeRadius),
           child: Padding(
             padding: const EdgeInsets.all(AppTheme.spacingMD),
             child: Row(

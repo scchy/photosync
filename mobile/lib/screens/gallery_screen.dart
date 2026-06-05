@@ -665,27 +665,29 @@ class _GalleryScreenState extends State<GalleryScreen> {
 
                   // 辅助说明
                   Container(
-                    padding: const EdgeInsets.all(AppTheme.spacingMD),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.spacingMD,
+                      vertical: AppTheme.spacingSM + 4,
+                    ),
                     decoration: BoxDecoration(
-                      color: AppTheme.infoColor.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(AppTheme.smallRadius),
-                      border: Border.all(
-                          color: AppTheme.infoColor.withValues(alpha: 0.15)),
+                      color: AppTheme.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(AppTheme.mediumRadius),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.info_outline,
-                            color: AppTheme.infoColor, size: 18),
+                        Icon(
+                          Icons.info_outline,
+                          color: AppTheme.textSecondaryColor,
+                          size: 18,
+                        ),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
                             '选择照片手动同步，或一键同步今天拍摄的照片到桌面端。',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: AppTheme.infoColor,
-                              height: 1.5,
-                            ),
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: AppTheme.textSecondaryColor,
+                                ),
                           ),
                         ),
                       ],
@@ -695,26 +697,18 @@ class _GalleryScreenState extends State<GalleryScreen> {
                   // 今日同步日志
                   if (_syncLogs.isNotEmpty) ...[
                     const SizedBox(height: AppTheme.spacingXL),
-                    Row(
-                      children: [
-                        const Icon(Icons.history,
-                            color: AppTheme.textSecondaryColor, size: 18),
-                        const SizedBox(width: 8),
-                        Text(
-                          '今日同步记录',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                      ],
+                    _sectionHeader(
+                      icon: Icons.history,
+                      iconColor: AppTheme.textSecondaryColor,
+                      title: '今日同步记录',
                     ),
                     const SizedBox(height: AppTheme.spacingMD),
                     Container(
                       padding: const EdgeInsets.all(AppTheme.spacingMD),
                       decoration: BoxDecoration(
                         color: AppTheme.surfaceColor,
-                        borderRadius:
-                            BorderRadius.circular(AppTheme.mediumRadius),
-                        border:
-                            Border.all(color: AppTheme.dividerColor, width: 1),
+                        borderRadius: BorderRadius.circular(AppTheme.largeRadius),
+                        boxShadow: AppTheme.cardShadow,
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -729,7 +723,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
                                       : log.success
                                           ? Icons.info_outline
                                           : Icons.error_outline,
-                                  size: 14,
+                                  size: 16,
                                   color: log.success
                                       ? AppTheme.successColor
                                       : AppTheme.errorColor,
@@ -738,10 +732,12 @@ class _GalleryScreenState extends State<GalleryScreen> {
                                 Expanded(
                                   child: Text(
                                     log.displayText,
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      color: AppTheme.textSecondaryColor,
-                                    ),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                          color: AppTheme.textSecondaryColor,
+                                        ),
                                   ),
                                 ),
                               ],
@@ -755,16 +751,10 @@ class _GalleryScreenState extends State<GalleryScreen> {
                   // 今日已同步照片
                   if (_todaySynced.isNotEmpty) ...[
                     const SizedBox(height: AppTheme.spacingXL),
-                    Row(
-                      children: [
-                        const Icon(Icons.check_circle,
-                            color: AppTheme.successColor, size: 18),
-                        const SizedBox(width: 8),
-                        Text(
-                          '今日已同步 (${_todaySynced.length} 张)',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                      ],
+                    _sectionHeader(
+                      icon: Icons.check_circle,
+                      iconColor: AppTheme.successColor,
+                      title: '今日已同步 (${_todaySynced.length} 张)',
                     ),
                     const SizedBox(height: AppTheme.spacingMD),
                     SizedBox(
@@ -827,6 +817,23 @@ class _GalleryScreenState extends State<GalleryScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _sectionHeader({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, color: iconColor, size: 20),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+      ],
     );
   }
 
@@ -949,8 +956,8 @@ class _StatsContainer extends StatelessWidget {
       padding: const EdgeInsets.all(AppTheme.spacingLG),
       decoration: BoxDecoration(
         color: AppTheme.surfaceColor,
-        borderRadius: BorderRadius.circular(AppTheme.mediumRadius),
-        border: Border.all(color: AppTheme.dividerColor, width: 1.0),
+        borderRadius: BorderRadius.circular(AppTheme.largeRadius),
+        boxShadow: AppTheme.cardShadow,
       ),
       child: child,
     );
@@ -977,36 +984,37 @@ class _StatItem extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 13, color: AppTheme.textLightColor),
-            const SizedBox(width: 4),
+            Icon(icon, size: 16, color: AppTheme.textLightColor),
+            const SizedBox(width: 6),
             Text(
               label,
               style: const TextStyle(
-                fontSize: 11,
+                fontSize: 13,
                 color: AppTheme.textLightColor,
                 letterSpacing: 0.02,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         RichText(
           text: TextSpan(
             children: [
               TextSpan(
                 text: value,
                 style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w700,
                   color: AppTheme.textPrimaryColor,
-                  letterSpacing: -0.02,
+                  letterSpacing: -0.03,
                   height: 1.1,
                 ),
               ),
               TextSpan(
                 text: ' $unit',
                 style: const TextStyle(
-                  fontSize: 12,
+                  fontSize: 14,
                   color: AppTheme.textSecondaryColor,
                   height: 1.1,
                 ),
